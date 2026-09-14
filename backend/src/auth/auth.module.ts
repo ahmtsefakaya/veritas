@@ -15,6 +15,6 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
-  exports: [AuthService],
+  exports: [AuthService, PassportModule],
 })
 export class AuthModule {}

@@ -13,6 +13,18 @@ enum UserRole {
   ADMIN
 }
 
+enum TopicStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_REVISION
+}
+
+enum SidePosition {
+  A
+  B
+}
+
 model User {
   id                String   @id @default(uuid())
   email             String   @unique
@@ -30,5 +42,51 @@ model User {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  topics    Topic[]
+  evidences Evidence[]
+
   @@map("users")
+}
+
+model Topic {
+  id              String      @id @default(uuid())
+  title           String
+  description     String
+  category        String
+  status          TopicStatus @default(PENDING)
+  moderationNote  String?
+  creatorId       String
+  creator         User        @relation(fields: [creatorId], references: [id])
+  sides           Side[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("topics")
+}
+
+model Side {
+  id        String       @id @default(uuid())
+  topicId   String
+  topic     Topic        @relation(fields: [topicId], references: [id])
+  position  SidePosition
+  label     String
+  evidences Evidence[]
+
+  @@unique([topicId, position])
+  @@map("sides")
+}
+
+model Evidence {
+  id          String   @id @default(uuid())
+  sideId      String
+  side        Side     @relation(fields: [sideId], references: [id])
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  content     String
+  sourceUrl   String?
+  score       Int?
+  aiReasoning String?
+  createdAt   DateTime @default(now())
+
+  @@map("evidences")
 }

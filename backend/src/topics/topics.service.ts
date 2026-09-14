@@ -1,17 +1,20 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { ModerateTopicDto, ModerationAction } from './dto/moderate-topic.dto';
 
 @Injectable()
 export class TopicsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private evidenceScoringService: EvidenceScoringService,
+  ) {}
 
   async create(creatorId: string, dto: CreateTopicDto) {
     return this.prisma.topic.create({
@@ -104,7 +107,7 @@ export class TopicsService {
       throw new BadRequestException('Bu konu henuz onaylanmadigi icin delil eklenemez.');
     }
 
-    return this.prisma.evidence.create({
+    const evidence = await this.prisma.evidence.create({
       data: {
         sideId,
         authorId,
@@ -112,5 +115,9 @@ export class TopicsService {
         sourceUrl: dto.sourceUrl,
       },
     });
+
+    await this.evidenceScoringService.enqueueScoring(evidence.id);
+
+    return evidence;
   }
 }

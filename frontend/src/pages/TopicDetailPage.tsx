@@ -27,38 +27,41 @@ interface Topic {
   sides: Side[];
 }
 
-function EvidenceCard({ evidence }: { evidence: Evidence }) {
-  const scoreColor =
-    evidence.score === null
-      ? 'bg-slate-600'
-      : evidence.score >= 70
-        ? 'bg-emerald-600'
-        : evidence.score >= 40
-          ? 'bg-amber-600'
-          : 'bg-red-600';
+function verdictColor(score: number | null) {
+  if (score === null) return 'text-parchment-dim border-line';
+  if (score >= 70) return 'text-verdict-strong border-verdict-strong';
+  if (score >= 40) return 'text-verdict-mid border-verdict-mid';
+  return 'text-verdict-weak border-verdict-weak';
+}
 
+function EvidenceCard({ evidence, exhibitLabel }: { evidence: Evidence; exhibitLabel: string }) {
   return (
-    <div className="bg-slate-800 rounded-xl p-4">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-slate-200 text-sm">{evidence.content}</p>
-        <span className={`shrink-0 text-xs font-bold px-2 py-1 rounded-full text-white ${scoreColor}`}>
-          {evidence.score === null ? '...' : evidence.score}
+    <div className="border border-line rounded-sm p-4 bg-ink-2">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <span className="font-mono text-xs text-brass">{exhibitLabel}</span>
+        <span
+          className={`font-mono text-xs px-2 py-0.5 rounded-sm border shrink-0 ${verdictColor(evidence.score)}`}
+        >
+          {evidence.score === null ? 'puanlaniyor' : `${evidence.score}/100`}
         </span>
       </div>
+      <p className="text-parchment text-sm leading-relaxed">{evidence.content}</p>
       {evidence.sourceUrl && (
         <a
           href={evidence.sourceUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-xs text-indigo-400 hover:text-indigo-300 mt-2 inline-block"
+          className="font-mono text-xs text-brass hover:text-brass-light mt-2 inline-block"
         >
-          Kaynak &rarr;
+          kaynak &rarr;
         </a>
       )}
       {evidence.aiReasoning && (
-        <p className="text-xs text-slate-500 mt-2 italic">AI: {evidence.aiReasoning}</p>
+        <p className="text-xs text-parchment-dim mt-2 leading-relaxed border-t border-line pt-2">
+          {evidence.aiReasoning}
+        </p>
       )}
-      <p className="text-xs text-slate-500 mt-2">
+      <p className="font-mono text-xs text-parchment-dim mt-2">
         {evidence.author.displayName ?? evidence.author.username}
       </p>
     </div>
@@ -96,37 +99,47 @@ function SideColumn({ side, onAdded }: { side: Side; onAdded: () => void }) {
 
   return (
     <div className="flex-1 min-w-0">
-      <h3 className="font-semibold text-lg mb-3">{side.label}</h3>
-      <div className="space-y-3 mb-4">
-        {sorted.length === 0 && <p className="text-slate-500 text-sm">Henuz delil yok.</p>}
-        {sorted.map((ev) => (
-          <EvidenceCard key={ev.id} evidence={ev} />
+      <div className="flex items-baseline gap-2 mb-4">
+        <span className="font-mono text-xs text-parchment-dim">TARAF {side.position}</span>
+        <h3 className="font-display text-lg text-parchment">{side.label}</h3>
+      </div>
+
+      <div className="space-y-3 mb-5">
+        {sorted.length === 0 && (
+          <p className="text-parchment-dim text-sm">henuz kanit sunulmadi.</p>
+        )}
+        {sorted.map((ev, i) => (
+          <EvidenceCard
+            key={ev.id}
+            evidence={ev}
+            exhibitLabel={`${side.position}-${i + 1}`}
+          />
         ))}
       </div>
 
-      <form onSubmit={handleAdd} className="space-y-2">
+      <form onSubmit={handleAdd} className="space-y-2 border-t border-line pt-4">
         <textarea
-          placeholder="Delilini yaz..."
+          placeholder="Kanitini sun..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
           required
           rows={3}
-          className="w-full px-3 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
         />
         <input
           type="url"
           placeholder="Kaynak linki (opsiyonel)"
           value={sourceUrl}
           onChange={(e) => setSourceUrl(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-slate-700 text-white placeholder-slate-400 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
         />
-        {error && <p className="text-red-400 text-xs">{error}</p>}
+        {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition disabled:opacity-50"
+          className="w-full py-2 rounded-sm bg-brass hover:bg-brass-light text-ink text-sm font-medium transition-colors disabled:opacity-50"
         >
-          {submitting ? 'Ekleniyor...' : 'Delil Ekle'}
+          {submitting ? 'sunuluyor...' : 'kanit sun'}
         </button>
       </form>
     </div>
@@ -148,30 +161,42 @@ export default function TopicDetailPage() {
   useEffect(load, [id]);
 
   if (loading) {
-    return <div className="min-h-screen bg-slate-900 text-white p-6">Yukleniyor...</div>;
+    return <div className="min-h-screen bg-ink text-parchment-dim text-sm p-6">yukleniyor...</div>;
   }
 
   if (!topic) {
-    return <div className="min-h-screen bg-slate-900 text-white p-6">Konu bulunamadi.</div>;
+    return <div className="min-h-screen bg-ink text-parchment-dim text-sm p-6">dava bulunamadi.</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <header className="border-b border-slate-800 px-6 py-4">
-        <Link to="/" className="text-sm text-slate-400 hover:text-white">
-          &larr; Geri
+    <div className="min-h-screen bg-ink">
+      <header className="border-b border-line px-6 py-5 max-w-5xl mx-auto">
+        <Link to="/" className="font-mono text-xs text-parchment-dim hover:text-parchment">
+          &larr; gundeme don
         </Link>
-        <h1 className="text-2xl font-bold mt-2">{topic.title}</h1>
-        <p className="text-slate-400 text-sm mt-1">{topic.description}</p>
+        <p className="font-mono text-xs text-brass mt-3">{topic.category.toUpperCase()}</p>
+        <h1 className="font-display text-3xl text-parchment mt-1">{topic.title}</h1>
+        <p className="text-parchment-dim text-sm mt-2 leading-relaxed max-w-2xl">
+          {topic.description}
+        </p>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {topic.sides
-            .sort((a, b) => a.position.localeCompare(b.position))
-            .map((side) => (
-              <SideColumn key={side.id} side={side} onAdded={load} />
-            ))}
+        <div className="flex flex-col md:flex-row gap-8 md:divide-x md:divide-line">
+          <div className="md:pr-8 flex-1">
+            {topic.sides
+              .filter((s) => s.position === 'A')
+              .map((side) => (
+                <SideColumn key={side.id} side={side} onAdded={load} />
+              ))}
+          </div>
+          <div className="md:pl-8 flex-1">
+            {topic.sides
+              .filter((s) => s.position === 'B')
+              .map((side) => (
+                <SideColumn key={side.id} side={side} onAdded={load} />
+              ))}
+          </div>
         </div>
       </main>
     </div>

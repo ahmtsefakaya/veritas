@@ -32,33 +32,36 @@ export default function NewTopicPage() {
     }
   }
 
+  const inputClass =
+    'w-full px-3 py-2.5 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors';
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white px-6 py-8">
+    <div className="min-h-screen bg-ink px-6 py-8">
       <div className="max-w-xl mx-auto">
-        <Link to="/" className="text-sm text-slate-400 hover:text-white">
-          &larr; Geri
+        <Link to="/" className="font-mono text-xs text-parchment-dim hover:text-parchment">
+          &larr; gundeme don
         </Link>
-        <h1 className="text-2xl font-bold mt-2 mb-1">Yeni Konu Olustur</h1>
-        <p className="text-slate-400 text-sm mb-6">
-          Konun admin onayindan gectikten sonra herkese acik olacak.
+        <h1 className="font-display text-2xl text-parchment mt-3 mb-1">Yeni Dava Ac</h1>
+        <p className="text-parchment-dim text-sm mb-6 leading-relaxed">
+          Davan moderasyondan gectikten sonra gundeme dusecek.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="text"
-            placeholder="Konu basligi"
+            placeholder="Dava basligi"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
-            className="w-full px-4 py-2.5 rounded-lg bg-slate-800 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
           <textarea
-            placeholder="Konu aciklamasi"
+            placeholder="Dava aciklamasi"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={4}
-            className="w-full px-4 py-2.5 rounded-lg bg-slate-800 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
           <input
             type="text"
@@ -66,35 +69,35 @@ export default function NewTopicPage() {
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             required
-            className="w-full px-4 py-2.5 rounded-lg bg-slate-800 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+            className={inputClass}
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <input
               type="text"
-              placeholder="A tarafi etiketi"
+              placeholder="A tarafi"
               value={sideALabel}
               onChange={(e) => setSideALabel(e.target.value)}
               required
-              className="px-4 py-2.5 rounded-lg bg-slate-800 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+              className={inputClass}
             />
             <input
               type="text"
-              placeholder="B tarafi etiketi"
+              placeholder="B tarafi"
               value={sideBLabel}
               onChange={(e) => setSideBLabel(e.target.value)}
               required
-              className="px-4 py-2.5 rounded-lg bg-slate-800 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-500"
+              className={inputClass}
             />
           </div>
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium transition disabled:opacity-50"
+            className="w-full py-2.5 rounded-sm bg-brass hover:bg-brass-light text-ink font-medium text-sm transition-colors disabled:opacity-50"
           >
-            {loading ? 'Gonderiliyor...' : 'Konuyu Olustur'}
+            {loading ? 'gonderiliyor...' : 'davayi ac'}
           </button>
         </form>
       </div>

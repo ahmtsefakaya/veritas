@@ -31,56 +31,95 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <header className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Veritas</h1>
-        <div className="flex items-center gap-4">
-          {user?.role === 'ADMIN' || user?.role === 'MODERATOR' ? (
-            <Link to="/admin" className="text-sm text-indigo-400 hover:text-indigo-300">
-              Moderasyon Paneli
-            </Link>
-          ) : null}
+    <div className="min-h-screen bg-ink flex">
+      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-line px-5 py-6 sticky top-0 h-screen">
+        <h1 className="font-display text-2xl text-parchment mb-8">Veritas</h1>
+
+        <nav className="flex flex-col gap-1 flex-1">
+          <Link
+            to="/"
+            className="px-3 py-2 rounded-sm text-sm text-parchment bg-ink-2 border border-line"
+          >
+            Gundem
+          </Link>
           <Link
             to="/new-topic"
-            className="text-sm bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg transition"
+            className="px-3 py-2 rounded-sm text-sm text-parchment-dim hover:text-parchment hover:bg-ink-2 transition-colors"
           >
-            + Yeni Konu
+            Yeni dava ac
           </Link>
-          <span className="text-sm text-slate-400">{user?.displayName ?? user?.username}</span>
-          <button onClick={logout} className="text-sm text-slate-400 hover:text-white">
-            Cikis
+          {(user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
+            <Link
+              to="/admin"
+              className="px-3 py-2 rounded-sm text-sm text-parchment-dim hover:text-parchment hover:bg-ink-2 transition-colors"
+            >
+              Moderasyon
+            </Link>
+          )}
+        </nav>
+
+        <div className="border-t border-line pt-4">
+          <p className="font-mono text-xs text-parchment truncate">
+            {user?.displayName ?? user?.username}
+          </p>
+          <button
+            onClick={logout}
+            className="font-mono text-xs text-parchment-dim hover:text-brass transition-colors mt-1"
+          >
+            cikis yap
           </button>
         </div>
-      </header>
+      </aside>
 
-      <main className="max-w-3xl mx-auto px-6 py-8">
-        <h2 className="text-lg font-semibold mb-4">Guncel Tartismalar</h2>
+      <main className="flex-1 max-w-2xl border-r border-line">
+        <header className="border-b border-line px-6 py-4 flex items-center justify-between md:hidden">
+          <h1 className="font-display text-xl text-parchment">Veritas</h1>
+          <Link
+            to="/new-topic"
+            className="font-mono text-xs px-3 py-1.5 rounded-sm bg-brass text-ink"
+          >
+            + dava
+          </Link>
+        </header>
 
-        {loading && <p className="text-slate-400">Yukleniyor...</p>}
+        <div className="px-6 py-4 border-b border-line hidden md:block">
+          <p className="font-mono text-xs text-parchment-dim tracking-wide">gundemdeki davalar</p>
+        </div>
+
+        {loading && <p className="text-parchment-dim text-sm px-6 py-8">yukleniyor...</p>}
 
         {!loading && topics.length === 0 && (
-          <p className="text-slate-400">Henuz onaylanmis bir konu yok.</p>
+          <p className="text-parchment-dim text-sm px-6 py-8">
+            henuz onaylanmis bir dava yok. ilk davayi sen ac.
+          </p>
         )}
 
-        <div className="space-y-3">
-          {topics.map((topic) => (
+        <div>
+          {topics.map((topic, i) => (
             <Link
               key={topic.id}
               to={`/topics/${topic.id}`}
-              className="block bg-slate-800 hover:bg-slate-750 rounded-xl p-5 transition"
+              className="block px-6 py-5 border-b border-line hover:bg-ink-2 transition-colors"
             >
-              <span className="text-xs uppercase tracking-wide text-indigo-400">
-                {topic.category}
-              </span>
-              <h3 className="text-lg font-semibold mt-1">{topic.title}</h3>
-              <p className="text-slate-400 text-sm mt-1 line-clamp-2">{topic.description}</p>
-              <div className="flex gap-3 mt-3 text-sm">
+              <div className="flex items-baseline gap-3 mb-1.5">
+                <span className="font-mono text-xs text-brass">
+                  DAVA-{String(i + 1).padStart(3, '0')}
+                </span>
+                <span className="font-mono text-xs text-parchment-dim uppercase tracking-wide">
+                  {topic.category}
+                </span>
+              </div>
+              <h3 className="font-display text-xl text-parchment mb-1.5">{topic.title}</h3>
+              <p className="text-parchment-dim text-sm leading-relaxed line-clamp-2 mb-3">
+                {topic.description}
+              </p>
+              <div className="flex gap-2">
                 {topic.sides.map((side) => (
                   <span
                     key={side.id}
-                    className="px-3 py-1 rounded-full bg-slate-700 text-slate-300"
+                    className="font-mono text-xs px-2.5 py-1 rounded-sm border border-line text-parchment-dim"
                   >
-                    {side.label}
+                    {side.position} &middot; {side.label}
                   </span>
                 ))}
               </div>
@@ -88,6 +127,14 @@ export default function HomePage() {
           ))}
         </div>
       </main>
+
+      <aside className="hidden lg:block w-72 shrink-0 px-6 py-6">
+        <p className="font-mono text-xs text-parchment-dim tracking-wide mb-3">nasil calisir</p>
+        <div className="space-y-3 text-sm text-parchment-dim leading-relaxed">
+          <p>Her dava iki tarafa ayrilir. Herkes delil sunar, yapay zeka delilin gucunu puanlar.</p>
+          <p>Guclu deliller uste cikar, zayif olanlar altta kalir.</p>
+        </div>
+      </aside>
     </div>
   );
 }

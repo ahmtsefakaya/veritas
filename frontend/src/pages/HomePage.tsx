@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from '../components/NotificationBell';
 
 interface Side {
   id: string;
@@ -156,6 +157,9 @@ export default function HomePage() {
               <p className="font-mono text-xs text-parchment truncate">
                 {user.displayName ?? user.username}
               </p>
+              <div className="mt-1">
+                <NotificationBell />
+              </div>
               <button
                 onClick={logout}
                 className="font-mono text-xs text-parchment-dim hover:text-brass transition-colors mt-1"

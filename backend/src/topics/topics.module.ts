@@ -3,10 +3,11 @@ import { TopicsService } from './topics.service';
 import { TopicsController } from './topics.controller';
 import { EvidenceScoringModule } from '../evidence-scoring/evidence-scoring.module';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TopicsGateway } from './topics.gateway';
 
 @Module({
-  imports: [EvidenceScoringModule, UsersModule],
+  imports: [EvidenceScoringModule, UsersModule, NotificationsModule],
   controllers: [TopicsController],
   providers: [TopicsService, TopicsGateway],
   exports: [TopicsService],

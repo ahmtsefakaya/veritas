@@ -5,6 +5,8 @@ import OpenAI from 'openai';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReputationService } from '../users/reputation.service';
 import { PointsService } from '../users/points.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PayoutEligibilityService } from '../users/payout-eligibility.service';
 import { ScoreEvidenceJob } from './evidence-scoring.service';
 
 @Processor('evidence-scoring')
@@ -16,6 +18,8 @@ export class EvidenceScoringProcessor extends WorkerHost {
     private prisma: PrismaService,
     private reputation: ReputationService,
     private points: PointsService,
+    private notifications: NotificationsService,
+    private payoutEligibility: PayoutEligibilityService,
   ) {
     super();
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -86,7 +90,31 @@ export class EvidenceScoringProcessor extends WorkerHost {
 
       this.logger.log(`Evidence ${evidenceId} puanlandi: ${score}`);
       await this.reputation.recalculateForEvidence(evidenceId);
-      await this.points.setEvidenceScore(evidence.authorId, evidenceId, score);
+      const transaction = await this.points.setEvidenceScore(
+        evidence.authorId,
+        evidenceId,
+        score,
+      );
+
+      await this.notifications.evidenceScored(
+        evidence.authorId,
+        evidenceId,
+        evidence.side.topicId,
+        score,
+        transaction?.delta ?? 0,
+      );
+
+      // Uygunluk esigi yeni gecildiyse kullaniciyi bir kez bilgilendir.
+      const eligibility = await this.payoutEligibility.check(evidence.authorId);
+      if (eligibility.eligible) {
+        const alreadyNotified = await this.prisma.notification.findFirst({
+          where: { userId: evidence.authorId, type: 'payout_eligible' },
+          select: { id: true },
+        });
+        if (!alreadyNotified) {
+          await this.notifications.payoutEligible(evidence.authorId);
+        }
+      }
     } catch (error) {
       this.logger.error(`Evidence ${evidenceId} puanlanamadi: ${error}`);
       throw error;

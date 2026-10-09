@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.service';
 import { ReputationService } from '../users/reputation.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { TopicsGateway } from './topics.gateway';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
@@ -21,6 +22,7 @@ export class TopicsService {
     private evidenceScoringService: EvidenceScoringService,
     private reputation: ReputationService,
     private gateway: TopicsGateway,
+    private notifications: NotificationsService,
   ) {}
 
   async create(creatorId: string, dto: CreateTopicDto) {
@@ -280,7 +282,7 @@ export class TopicsService {
   async addComment(topicId: string, authorId: string, dto: CreateCommentDto) {
     const topic = await this.prisma.topic.findUnique({
       where: { id: topicId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, title: true, creatorId: true },
     });
     if (!topic) {
       throw new NotFoundException('Konu bulunamadi.');
@@ -289,10 +291,11 @@ export class TopicsService {
       throw new BadRequestException('Bu konu henuz onaylanmadigi icin yorum yapilamaz.');
     }
 
+    let parentAuthorId: string | null = null;
     if (dto.parentId) {
       const parent = await this.prisma.comment.findUnique({
         where: { id: dto.parentId },
-        select: { id: true, topicId: true, parentId: true },
+        select: { id: true, topicId: true, parentId: true, authorId: true },
       });
       if (!parent || parent.topicId !== topicId) {
         throw new BadRequestException('Yanit verilen yorum bu konuya ait degil.');
@@ -300,6 +303,7 @@ export class TopicsService {
       if (parent.parentId) {
         throw new BadRequestException('Yanitlara yanit verilemez.');
       }
+      parentAuthorId = parent.authorId;
     }
 
     const comment = await this.prisma.comment.create({
@@ -316,6 +320,15 @@ export class TopicsService {
 
     const result = { ...comment, replies: [] };
     this.gateway.emitTopicEvent(topicId, 'comment:created', result);
+
+    // Yanit verilen kisi ve dava sahibi bilgilendirilir; kendi eylemi icin bildirim gitmez.
+    if (parentAuthorId && parentAuthorId !== authorId) {
+      await this.notifications.commentReply(parentAuthorId, topicId, topic.title);
+    }
+    if (topic.creatorId !== authorId && topic.creatorId !== parentAuthorId) {
+      await this.notifications.topicComment(topic.creatorId, topicId, topic.title);
+    }
+
     return result;
   }
 
@@ -355,13 +368,22 @@ export class TopicsService {
       [ModerationAction.REQUEST_REVISION]: 'NEEDS_REVISION',
     } as const;
 
-    return this.prisma.topic.update({
+    const updated = await this.prisma.topic.update({
       where: { id: topicId },
       data: {
         status: statusMap[dto.action],
         moderationNote: dto.note ?? null,
       },
     });
+
+    await this.notifications.topicModerated(
+      topic.creatorId,
+      topicId,
+      topic.title,
+      dto.action === ModerationAction.APPROVE,
+    );
+
+    return updated;
   }
 
   async addEvidence(sideId: string, authorId: string, dto: CreateEvidenceDto) {

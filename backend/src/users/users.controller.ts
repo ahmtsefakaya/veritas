@@ -27,6 +27,11 @@ export class UsersController {
     return this.usersService.updateProfile(user.id, dto);
   }
 
+  @Get('leaderboard')
+  leaderboard() {
+    return this.usersService.leaderboard();
+  }
+
   @Get(':username')
   getPublicProfile(@Param('username') username: string) {
     return this.usersService.findByUsername(username);

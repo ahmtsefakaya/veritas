@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { EvidenceScoringService } from './evidence-scoring.service';
 import { EvidenceScoringProcessor } from './evidence-scoring.processor';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
+    UsersModule,
     BullModule.forRootAsync({
       useFactory: () => ({
         connection: {

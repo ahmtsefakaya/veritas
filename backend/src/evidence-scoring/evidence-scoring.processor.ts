@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import OpenAI from 'openai';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReputationService } from '../users/reputation.service';
 import { ScoreEvidenceJob } from './evidence-scoring.service';
 
 @Processor('evidence-scoring')
@@ -10,7 +11,10 @@ export class EvidenceScoringProcessor extends WorkerHost {
   private readonly logger = new Logger(EvidenceScoringProcessor.name);
   private openai: OpenAI;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private reputation: ReputationService,
+  ) {
     super();
     this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   }
@@ -69,6 +73,7 @@ export class EvidenceScoringProcessor extends WorkerHost {
       });
 
       this.logger.log(`Evidence ${evidenceId} puanlandi: ${score}`);
+      await this.reputation.recalculateForEvidence(evidenceId);
     } catch (error) {
       this.logger.error(`Evidence ${evidenceId} puanlanamadi: ${error}`);
       throw error;

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.service';
+import { ReputationService } from '../users/reputation.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -17,6 +18,7 @@ export class TopicsService {
   constructor(
     private prisma: PrismaService,
     private evidenceScoringService: EvidenceScoringService,
+    private reputation: ReputationService,
   ) {}
 
   async create(creatorId: string, dto: CreateTopicDto) {
@@ -221,6 +223,8 @@ export class TopicsService {
       }),
       this.prisma.evidenceVote.count({ where: { evidenceId } }),
     ]);
+
+    await this.reputation.recalculate(evidence.authorId);
 
     return {
       evidenceId,

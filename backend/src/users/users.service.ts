@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReputationService } from './reputation.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private reputation: ReputationService,
+  ) {}
 
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
@@ -38,6 +42,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        role: true,
         reputationScore: true,
         createdAt: true,
       },
@@ -46,7 +51,23 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('Kullanici bulunamadi.');
     }
-    return user;
+
+    const stats = await this.reputation.stats(user.id);
+    return { ...user, stats };
+  }
+
+  async leaderboard(limit = 20) {
+    return this.prisma.user.findMany({
+      where: { isBanned: false, reputationScore: { gt: 0 } },
+      orderBy: { reputationScore: 'desc' },
+      take: Math.min(limit, 50),
+      select: {
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        reputationScore: true,
+      },
+    });
   }
 
   async updateProfile(id: string, dto: UpdateUserDto) {

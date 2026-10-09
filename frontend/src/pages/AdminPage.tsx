@@ -77,6 +77,8 @@ export default function AdminPage() {
   const [tab, setTab] = useState<'topics' | 'reports' | 'users' | 'stats'>('topics');
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [rescoring, setRescoring] = useState(false);
+  const [rescoreResult, setRescoreResult] = useState<string | null>(null);
   const { accessToken, user: currentUser } = useAuth();
   const isAdmin = currentUser?.role === 'ADMIN';
 
@@ -140,6 +142,26 @@ export default function AdminPage() {
       body: { action, note: note || undefined },
     });
     load();
+  }
+
+  async function rescoreStale() {
+    setRescoring(true);
+    setRescoreResult(null);
+    try {
+      const result = await apiRequest<{ queued: number }>('/topics/evidences/rescore-stale', {
+        method: 'POST',
+        token: accessToken,
+      });
+      setRescoreResult(
+        result.queued === 0
+          ? 'Yeniden puanlanacak kanit yok.'
+          : `${result.queued} kanit kuyruga alindi. Puanlama birkac dakika surebilir.`,
+      );
+    } catch (error) {
+      setRescoreResult((error as Error).message);
+    } finally {
+      setRescoring(false);
+    }
   }
 
   return (
@@ -472,6 +494,28 @@ export default function AdminPage() {
                   kullanici oylari ve yorumlar bu sayiyi etkilemez. Odul puani uygulama ici
                   puandir, para degildir.
                 </p>
+
+                {isAdmin && (
+                  <div className="border border-line rounded-sm p-5 bg-ink-2 mt-8">
+                    <h3 className="font-display text-lg text-brass">Bakim</h3>
+                    <p className="text-xs text-parchment-dim mt-2 leading-relaxed">
+                      Puanlama modeli degistiginde eski kanitlar eski puanlariyla kalir.
+                      Asagidaki islem, hic puanlanmamis veya eski tek-puanli modelle islenmis
+                      tum kanitlari yeni bes bilesenli modelle yeniden degerlendirmeye alir.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={rescoreStale}
+                      disabled={rescoring}
+                      className="mt-4 px-4 py-2 rounded-sm border border-brass text-brass hover:bg-brass hover:text-ink text-sm font-medium transition-colors disabled:opacity-40"
+                    >
+                      {rescoring ? 'kuyruga aliniyor...' : 'eski kanitlari yeniden puanla'}
+                    </button>
+                    {rescoreResult && (
+                      <p className="font-mono text-xs text-parchment-dim mt-3">{rescoreResult}</p>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </>

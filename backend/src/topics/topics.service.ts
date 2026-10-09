@@ -9,6 +9,7 @@ import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.ser
 import { ReputationService } from '../users/reputation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { QuotaService } from '../common/quota.service';
+import { EvidenceReportsService } from './evidence-reports.service';
 import { TopicsGateway } from './topics.gateway';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
@@ -25,6 +26,7 @@ export class TopicsService {
     private gateway: TopicsGateway,
     private notifications: NotificationsService,
     private quota: QuotaService,
+    private evidenceReports: EvidenceReportsService,
   ) {}
 
   async create(creatorId: string, dto: CreateTopicDto) {
@@ -179,6 +181,18 @@ export class TopicsService {
         })
       : [];
     const sumByEvidence = new Map(voteSums.map((v) => [v.evidenceId, v._sum.value ?? 0]));
+    const reportCounts = await this.evidenceReports.summaryFor(evidenceIds);
+    const myReports =
+      viewerId && evidenceIds.length
+        ? new Set(
+            (
+              await this.prisma.evidenceReport.findMany({
+                where: { evidenceId: { in: evidenceIds }, reporterId: viewerId },
+                select: { evidenceId: true },
+              })
+            ).map((row) => row.evidenceId),
+          )
+        : new Set<string>();
 
     const withVotes = {
       ...topic,
@@ -191,6 +205,8 @@ export class TopicsService {
             voteScore: sumByEvidence.get(evidence.id) ?? 0,
             voteCount: _count?.votes ?? 0,
             myVote: Array.isArray(votes) && votes.length ? votes[0].value : 0,
+            reportCount: reportCounts.get(evidence.id) ?? 0,
+            myReported: myReports.has(evidence.id),
           };
         }),
       })),

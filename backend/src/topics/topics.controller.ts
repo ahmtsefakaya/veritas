@@ -10,12 +10,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { TopicsService } from './topics.service';
+import { EvidenceReportsService } from './evidence-reports.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { ListTopicsDto } from './dto/list-topics.dto';
 import { ModerateTopicDto } from './dto/moderate-topic.dto';
 import { VoteEvidenceDto } from './dto/vote-evidence.dto';
+import { ReportEvidenceDto } from './dto/report-evidence.dto';
+import { ResolveReportDto } from './dto/resolve-report.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -24,7 +27,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @Controller('topics')
 export class TopicsController {
-  constructor(private topicsService: TopicsService) {}
+  constructor(
+    private topicsService: TopicsService,
+    private evidenceReports: EvidenceReportsService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post()
@@ -63,6 +69,34 @@ export class TopicsController {
     @Body() dto: VoteEvidenceDto,
   ) {
     return this.topicsService.voteEvidence(evidenceId, user.id, dto.value);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('evidences/:evidenceId/report')
+  reportEvidence(
+    @Param('evidenceId') evidenceId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: ReportEvidenceDto,
+  ) {
+    return this.evidenceReports.report(evidenceId, user.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
+  @Get('reports/queue')
+  reportQueue(@Query('status') status?: string) {
+    return this.evidenceReports.queue(status);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'MODERATOR')
+  @Patch('reports/:reportId')
+  resolveReport(
+    @Param('reportId') reportId: string,
+    @CurrentUser() user: { id: string; role: string },
+    @Body() dto: ResolveReportDto,
+  ) {
+    return this.evidenceReports.resolve(reportId, user, dto.action, dto.note);
   }
 
   @Get(':id/comments')

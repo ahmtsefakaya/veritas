@@ -21,6 +21,8 @@ interface Evidence {
   voteScore: number;
   voteCount: number;
   myVote: number;
+  reportCount: number;
+  myReported: boolean;
   author: { username: string; displayName: string | null };
 }
 
@@ -110,7 +112,128 @@ function VoteButtons({ evidence }: { evidence: Evidence }) {
   );
 }
 
-function EvidenceCard({ evidence, exhibitLabel }: { evidence: Evidence; exhibitLabel: string }) {
+const REPORT_REASONS: { value: string; label: string }[] = [
+  { value: 'FAKE_SOURCE', label: 'Kaynak sahte veya uydurma' },
+  { value: 'BROKEN_SOURCE', label: 'Kaynak linki calismiyor' },
+  { value: 'MISREPRESENTS_SOURCE', label: 'Kaynagi yanlis aktariyor' },
+  { value: 'OUT_OF_CONTEXT', label: 'Baglamdan koparilmis' },
+  { value: 'DUPLICATE', label: 'Ayni kanit tekrar eklenmis' },
+  { value: 'OFF_TOPIC', label: 'Konuyla ilgisiz' },
+];
+
+function ReportControl({ evidence, onReported }: { evidence: Evidence; onReported: () => void }) {
+  const { user, accessToken } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState(REPORT_REASONS[0].value);
+  const [detail, setDetail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const isOwn = user?.username === evidence.author.username;
+  if (!user || isOwn) return null;
+
+  const submit = async () => {
+    setBusy(true);
+    setMessage('');
+    try {
+      const result = await apiRequest<{ reviewQueued: boolean }>(
+        `/topics/evidences/${evidence.id}/report`,
+        { method: 'POST', body: { reason, detail: detail || undefined }, token: accessToken },
+      );
+      setMessage(
+        result.reviewQueued
+          ? 'Bildirildi. Kanit yeniden yapay zeka degerlendirmesine alindi.'
+          : 'Bildirildi. Yeterli bildirim toplanirsa kanit yeniden degerlendirilir.',
+      );
+      setOpen(false);
+      onReported();
+    } catch (error) {
+      setMessage((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-2">
+      <div className="flex items-center gap-3">
+        {evidence.myReported ? (
+          <span className="font-mono text-xs text-parchment-dim">bildirdiniz</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="font-mono text-xs text-parchment-dim hover:text-verdict-weak transition-colors"
+          >
+            kaynagi bildir
+          </button>
+        )}
+        {evidence.reportCount > 0 && (
+          <span className="font-mono text-xs text-verdict-weak">
+            {evidence.reportCount} acik bildirim
+          </span>
+        )}
+      </div>
+
+      {open && (
+        <div className="mt-2 border border-line rounded-sm p-3 bg-ink">
+          <p className="font-mono text-xs text-parchment-dim mb-2">
+            Bildiriminiz puani dogrudan degistirmez; yeterli bildirim toplanirsa kanit yapay zeka
+            tarafindan yeniden degerlendirilir.
+          </p>
+          <select
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            className="w-full bg-ink-2 border border-line rounded-sm px-2 py-1 text-sm text-parchment"
+          >
+            {REPORT_REASONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <textarea
+            value={detail}
+            onChange={(event) => setDetail(event.target.value)}
+            placeholder="Ek aciklama (istege bagli)"
+            maxLength={500}
+            rows={2}
+            className="w-full mt-2 bg-ink-2 border border-line rounded-sm px-2 py-1 text-sm text-parchment"
+          />
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={submit}
+              disabled={busy}
+              className="font-mono text-xs px-3 py-1 rounded-sm bg-brass text-ink disabled:opacity-40"
+            >
+              {busy ? 'gonderiliyor...' : 'bildir'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="font-mono text-xs px-3 py-1 rounded-sm border border-line text-parchment-dim"
+            >
+              vazgec
+            </button>
+          </div>
+        </div>
+      )}
+
+      {message && <p className="font-mono text-xs text-parchment-dim mt-2">{message}</p>}
+    </div>
+  );
+}
+
+function EvidenceCard({
+  evidence,
+  exhibitLabel,
+  onChanged,
+}: {
+  evidence: Evidence;
+  exhibitLabel: string;
+  onChanged: () => void;
+}) {
   return (
     <div className="border border-line rounded-sm p-4 bg-ink-2">
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -150,6 +273,7 @@ function EvidenceCard({ evidence, exhibitLabel }: { evidence: Evidence; exhibitL
         {evidence.author.displayName ?? evidence.author.username}
       </p>
       <VoteButtons evidence={evidence} />
+      <ReportControl evidence={evidence} onReported={onChanged} />
     </div>
   );
 }
@@ -220,6 +344,7 @@ function SideColumn({
             key={ev.id}
             evidence={ev}
             exhibitLabel={`${side.position}-${i + 1}`}
+            onChanged={onAdded}
           />
         ))}
       </div>

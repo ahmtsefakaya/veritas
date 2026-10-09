@@ -52,6 +52,7 @@ model User {
   comments  Comment[]
   pointTransactions PointTransaction[]
   notifications     Notification[]
+  evidenceReports   EvidenceReport[]
 
   @@map("users")
 }
@@ -83,6 +84,24 @@ model Notification {
 
   @@index([userId, isRead, createdAt])
   @@map("notifications")
+}
+
+model EvidenceReport {
+  id         String   @id @default(uuid())
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  reporterId String
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     String
+  detail     String?
+  status     String   @default("PENDING")
+  resolution String?
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+
+  @@unique([evidenceId, reporterId])
+  @@index([status, createdAt])
+  @@map("evidence_reports")
 }
 
 model Topic {
@@ -147,6 +166,7 @@ model Evidence {
   createdAt   DateTime @default(now())
 
   votes EvidenceVote[]
+  reports EvidenceReport[]
 
   @@map("evidences")
 }

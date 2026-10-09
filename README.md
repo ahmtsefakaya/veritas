@@ -69,9 +69,25 @@ tüm oturumlar düşer. Hesap sayımını sızdırmamak için `password/forgot` 
 olmayan adres için de aynı 202 cevabını döner. Hesap başına saatlik 3 talep
 sınırı vardır. Bu akışlar kanıt kalite puanına veya ödül puanına dokunmaz.
 
-E-posta gönderimi `MailService` üzerinden tek noktadan geçer; bir SMTP
-sağlayıcısı bağlanana kadar mesajlar loglanır. Bağlantı adresi `APP_URL`
-ortam değişkeninden üretilir.
+E-posta gönderimi `MailService` üzerinden tek noktadan geçer. `SMTP_HOST`
+tanımlıysa nodemailer ile gerçek SMTP gönderimi yapılır (düz metin + otomatik
+üretilen HTML gövde); tanımlı değilse mesajlar yalnızca loglanır, böylece
+akışlar sağlayıcı seçimine bağlı kalmaz. Bağlantı adresi `APP_URL` ortam
+değişkeninden üretilir.
+
+SMTP ortam değişkenleri (tümü opsiyonel):
+
+```
+SMTP_HOST       sunucu adresi; yoksa gönderim yapılmaz, yalnızca loglanır
+SMTP_PORT       varsayılan 587
+SMTP_SECURE     "true" ise implicit TLS; port 465 otomatik olarak secure'dur
+SMTP_USER       kimlik; SMTP_PASSWORD ile birlikte verilmezse auth gönderilmez
+SMTP_PASSWORD   kimlik şifresi
+MAIL_FROM       gönderen adresi (varsayılan SMTP_USER)
+```
+
+Gönderim hatası çağıran işlemi (kayıt, şifre sıfırlama talebi) bozmaz; hata
+loglanır ve akış 202 ile devam eder.
 
 ## API (yönetim)
 

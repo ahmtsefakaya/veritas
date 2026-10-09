@@ -50,6 +50,7 @@ puanı uygulama içi puandır, para değildir — gerçek para dağıtımı yap�
 - [x] Yönetim paneli (kullanıcı/rol/kısıtlama yönetimi + platform istatistikleri)
 - [x] Hesap ayarlari, itibar sıralaması sayfası, 404 sayfası ve SEO meta etiketleri
 - [x] E-posta doğrulama ve şifre sıfırlama (tek kullanımlık jeton, SHA-256 özet)
+- [x] Bilgi sayfaları (nasıl çalışır, kurallar, gizlilik, kullanım şartları), ortak footer, robots.txt + sitemap.xml
 - [ ] Mobil uygulama (React Native / Expo)
 
 ## Hesap kurtarma akışları

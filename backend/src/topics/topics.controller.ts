@@ -99,6 +99,20 @@ export class TopicsController {
     return this.evidenceReports.resolve(reportId, user, dto.action, dto.note);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Post('evidences/:evidenceId/rescore')
+  rescoreEvidence(@Param('evidenceId') evidenceId: string) {
+    return this.topicsService.rescoreEvidence(evidenceId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Post('evidences/rescore-stale')
+  rescoreStale() {
+    return this.topicsService.rescoreStaleEvidences();
+  }
+
   @Get(':id/comments')
   listComments(@Param('id') id: string) {
     return this.topicsService.listComments(id);

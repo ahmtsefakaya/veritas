@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from '../components/NotificationBell';
+import Footer from '../components/Footer';
 
 interface Side {
   id: string;
   position: 'A' | 'B';
   label: string;
   totalScore: number;
+  strengthScore: number | null;
   evidenceCount: number;
 }
 
@@ -313,7 +315,7 @@ export default function HomePage() {
                         : 'border-line text-parchment-dim'
                     }`}
                   >
-                    {side.position} &middot; {side.label} &middot; {side.totalScore}
+                    {side.position} &middot; {side.label} &middot; {side.strengthScore ?? '-'}
                   </span>
                 ))}
               </div>
@@ -344,6 +346,10 @@ export default function HomePage() {
             </button>
           </div>
         )}
+
+        <div className="lg:hidden">
+          <Footer />
+        </div>
       </main>
 
       <aside className="hidden lg:block w-72 shrink-0 px-6 py-6">
@@ -351,7 +357,13 @@ export default function HomePage() {
         <div className="space-y-3 text-sm text-parchment-dim leading-relaxed">
           <p>Her dava iki tarafa ayrilir. Herkes delil sunar, yapay zeka delilin gucunu puanlar.</p>
           <p>Guclu deliller uste cikar, zayif olanlar altta kalir.</p>
+          <p>
+            <Link to="/how-it-works" className="text-brass underline">
+              ayrintili anlatim
+            </Link>
+          </p>
         </div>
+        <Footer />
       </aside>
     </div>
   );

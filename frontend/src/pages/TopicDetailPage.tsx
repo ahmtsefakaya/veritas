@@ -33,6 +33,7 @@ interface Side {
   evidences: Evidence[];
   totalScore: number;
   averageScore: number | null;
+  strengthScore: number | null;
   evidenceCount: number;
   scoredCount: number;
 }
@@ -328,7 +329,9 @@ function SideColumn({
       </div>
 
       <div className="flex gap-3 mb-4 font-mono text-xs text-parchment-dim">
-        <span>toplam {side.totalScore}</span>
+        <span className="text-brass" title="Kanit kalitesine dayali taraf gucu. Cok sayida zayif kanit bu puani yukseltmez.">
+          guc {side.strengthScore ?? '-'}
+        </span>
         <span>ort {side.averageScore ?? '-'}</span>
         <span>
           {side.scoredCount}/{side.evidenceCount} kanit puanlandi

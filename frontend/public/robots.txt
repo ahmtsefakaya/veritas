@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /settings
+Disallow: /admin
+Disallow: /reset-password
+Disallow: /verify-email
+
+Sitemap: https://veritas-iota-inky.vercel.app/sitemap.xml

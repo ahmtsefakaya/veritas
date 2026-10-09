@@ -14,6 +14,10 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
+import HowItWorksPage from './pages/HowItWorksPage';
+import RulesPage from './pages/RulesPage';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 
 export default function App() {
   return (
@@ -37,6 +41,10 @@ export default function App() {
           <Route path="/users/:username" element={<ProfilePage />} />
           <Route path="/rewards" element={<RewardsPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/rules" element={<RulesPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
           <Route
             path="/settings"
             element={

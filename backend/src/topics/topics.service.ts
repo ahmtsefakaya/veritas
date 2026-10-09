@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.service';
 import { ReputationService } from '../users/reputation.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -48,6 +49,26 @@ export class TopicsService {
     });
   }
 
+  /**
+   * Taraf gucu: nicelik degil kalite kazanmali.
+   *
+   * Eski model toplam puani kullaniyordu; bu, 2 adet 45'lik vasat kaniti
+   * 1 adet 90'lik saglam kanitin onune geciriyordu. Yani taraf, daha iyi
+   * kanit sunarak degil daha COK kanit yigarak kazanabiliyordu. Bu, urunun
+   * "dogrulanabilir olan kazanir" vaadiyle dogrudan celisiyordu.
+   *
+   * Yeni model, notr bir baslangica (50) dogru cekilen agirlikli ortalama
+   * kullanir:  guc = (puanlarin toplami + PRIOR_WEIGHT * 50) / (n + PRIOR_WEIGHT)
+   *
+   * - Kalite belirleyicidir: 2x45 -> 47, 1x90 -> 63. Saglam kanit kazanir.
+   * - Tek kanitla gelen uc ortalamalar yumusatilir, boylece tek sansli
+   *   kanitla dava kazanmak zorlasir; taraf guvenini kanit sayisiyla da
+   *   pekistirmelidir.
+   * - Vasat kanit yigmak ortalamayi dusurdugu icin spam cezalandirilir.
+   */
+  private static readonly PRIOR_WEIGHT = 2;
+  private static readonly PRIOR_SCORE = 50;
+
   private withScores<
     T extends {
       sides: { id: string; position: string; label: string; evidences?: { score: number | null }[] }[];
@@ -57,17 +78,25 @@ export class TopicsService {
       const evidences = side.evidences ?? [];
       const scored = evidences.filter((e) => typeof e.score === 'number');
       const totalScore = scored.reduce((sum, e) => sum + (e.score as number), 0);
+      const strengthScore = scored.length
+        ? Math.round(
+            (totalScore + TopicsService.PRIOR_WEIGHT * TopicsService.PRIOR_SCORE) /
+              (scored.length + TopicsService.PRIOR_WEIGHT),
+          )
+        : null;
+
       return {
         ...side,
         evidenceCount: evidences.length,
         scoredCount: scored.length,
         totalScore,
         averageScore: scored.length ? Math.round(totalScore / scored.length) : null,
+        strengthScore,
       };
     });
 
-    const best = [...sides].sort((a, b) => b.totalScore - a.totalScore);
-    const isTie = best.length > 1 && best[0].totalScore === best[1].totalScore;
+    const best = [...sides].sort((a, b) => (b.strengthScore ?? -1) - (a.strengthScore ?? -1));
+    const isTie = best.length > 1 && best[0].strengthScore === best[1].strengthScore;
     const hasAnyScore = sides.some((s) => s.scoredCount > 0);
 
     return {
@@ -374,6 +403,39 @@ export class TopicsService {
     }
 
     return { id: commentId, isDeleted: true };
+  }
+
+  /**
+   * Tek bir kaniti yeniden AI degerlendirmesine sokar.
+   * Puanlama prompt'u degistiginde eski kanitlari guncellemek icin gerekli.
+   */
+  async rescoreEvidence(evidenceId: string) {
+    const evidence = await this.prisma.evidence.findUnique({
+      where: { id: evidenceId },
+      select: { id: true },
+    });
+    if (!evidence) {
+      throw new NotFoundException('Kanit bulunamadi.');
+    }
+    await this.evidenceScoringService.enqueueScoring(evidenceId);
+    return { evidenceId, queued: true };
+  }
+
+  /**
+   * Eski puanlama modeliyle islenmis (qualityBreakdown bos) veya hic
+   * puanlanmamis tum kanitlari yeniden kuyruga alir.
+   */
+  async rescoreStaleEvidences() {
+    const stale = await this.prisma.evidence.findMany({
+      where: { OR: [{ qualityBreakdown: { equals: Prisma.DbNull } }, { score: null }] },
+      select: { id: true },
+    });
+
+    for (const evidence of stale) {
+      await this.evidenceScoringService.enqueueScoring(evidence.id);
+    }
+
+    return { queued: stale.length, evidenceIds: stale.map((e) => e.id) };
   }
 
   async moderate(topicId: string, dto: ModerateTopicDto) {

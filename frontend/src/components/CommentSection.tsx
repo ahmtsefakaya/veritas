@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiRequest } from '../api/client';
+import { apiRequest, API_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { io, type Socket } from 'socket.io-client';
 
 interface CommentAuthor {
   id: string;
@@ -204,6 +205,17 @@ export default function CommentSection({ topicId }: { topicId: string }) {
   }
 
   useEffect(load, [topicId]);
+
+  useEffect(() => {
+    if (!API_URL) return;
+    const socket: Socket = io(`${API_URL}/realtime`, { transports: ['websocket'] });
+    socket.on('connect', () => socket.emit('topic:join', { topicId }));
+    socket.on('comment:created', load);
+    return () => {
+      socket.emit('topic:leave', { topicId });
+      socket.disconnect();
+    };
+  }, [topicId]);
 
   async function send(content: string) {
     await apiRequest(`/topics/${topicId}/comments`, {

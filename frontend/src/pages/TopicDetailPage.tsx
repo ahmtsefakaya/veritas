@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiRequest } from '../api/client';
+import { apiRequest, API_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { io, type Socket } from 'socket.io-client';
 import CommentSection from '../components/CommentSection';
 
 interface Evidence {
@@ -261,6 +262,18 @@ export default function TopicDetailPage() {
   }
 
   useEffect(load, [id, accessToken]);
+
+  useEffect(() => {
+    if (!id || !API_URL) return;
+    const socket: Socket = io(`${API_URL}/realtime`, { transports: ['websocket'] });
+    socket.on('connect', () => socket.emit('topic:join', { topicId: id }));
+    socket.on('evidence:created', load);
+    socket.on('evidence:voted', load);
+    return () => {
+      socket.emit('topic:leave', { topicId: id });
+      socket.disconnect();
+    };
+  }, [id, accessToken]);
 
   if (loading) {
     return <div className="min-h-screen bg-ink text-parchment-dim text-sm p-6">yukleniyor...</div>;

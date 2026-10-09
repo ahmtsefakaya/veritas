@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.service';
 import { ReputationService } from '../users/reputation.service';
+import { TopicsGateway } from './topics.gateway';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -19,6 +20,7 @@ export class TopicsService {
     private prisma: PrismaService,
     private evidenceScoringService: EvidenceScoringService,
     private reputation: ReputationService,
+    private gateway: TopicsGateway,
   ) {}
 
   async create(creatorId: string, dto: CreateTopicDto) {
@@ -195,7 +197,7 @@ export class TopicsService {
   async voteEvidence(evidenceId: string, userId: string, value: number) {
     const evidence = await this.prisma.evidence.findUnique({
       where: { id: evidenceId },
-      select: { id: true, authorId: true },
+      select: { id: true, authorId: true, side: { select: { topicId: true } } },
     });
 
     if (!evidence) {
@@ -226,12 +228,14 @@ export class TopicsService {
 
     await this.reputation.recalculate(evidence.authorId);
 
-    return {
+    const result = {
       evidenceId,
       voteScore: sum._sum.value ?? 0,
       voteCount: count,
       myVote: value,
     };
+    this.gateway.emitTopicEvent(evidence.side.topicId, 'evidence:voted', result);
+    return result;
   }
 
   async listComments(topicId: string) {
@@ -310,7 +314,9 @@ export class TopicsService {
       },
     });
 
-    return { ...comment, replies: [] };
+    const result = { ...comment, replies: [] };
+    this.gateway.emitTopicEvent(topicId, 'comment:created', result);
+    return result;
   }
 
   async deleteComment(commentId: string, user: { id: string; role: string }) {
@@ -382,6 +388,7 @@ export class TopicsService {
     });
 
     await this.evidenceScoringService.enqueueScoring(evidence.id);
+    this.gateway.emitTopicEvent(side.topic.id, 'evidence:created', evidence);
 
     return evidence;
   }

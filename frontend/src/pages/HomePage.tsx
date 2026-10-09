@@ -107,6 +107,12 @@ export default function HomePage() {
           >
             Yeni dava ac
           </Link>
+          <Link
+            to="/rewards"
+            className="px-3 py-2 rounded-sm text-sm text-parchment-dim hover:text-parchment hover:bg-ink-2 transition-colors"
+          >
+            Odul programi
+          </Link>
           {(user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
             <Link
               to="/admin"

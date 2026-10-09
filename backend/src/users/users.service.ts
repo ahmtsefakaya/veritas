@@ -24,6 +24,10 @@ export class UsersService {
         reputationScore: true,
         pointsBalance: true,
         totalEarnings: true,
+        country: true,
+        isPremium: true,
+        premiumUntil: true,
+        isEmailVerified: true,
         createdAt: true,
       },
     });
@@ -82,6 +86,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        country: true,
       },
     });
   }

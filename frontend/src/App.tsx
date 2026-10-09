@@ -7,6 +7,7 @@ import NewTopicPage from './pages/NewTopicPage';
 import TopicDetailPage from './pages/TopicDetailPage';
 import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
+import RewardsPage from './pages/RewardsPage';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           />
           <Route path="/topics/:id" element={<TopicDetailPage />} />
           <Route path="/users/:username" element={<ProfilePage />} />
+          <Route path="/rewards" element={<RewardsPage />} />
           <Route
             path="/admin"
             element={

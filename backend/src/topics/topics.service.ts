@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.service';
 import { ReputationService } from '../users/reputation.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { QuotaService } from '../common/quota.service';
 import { TopicsGateway } from './topics.gateway';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
@@ -23,9 +24,11 @@ export class TopicsService {
     private reputation: ReputationService,
     private gateway: TopicsGateway,
     private notifications: NotificationsService,
+    private quota: QuotaService,
   ) {}
 
   async create(creatorId: string, dto: CreateTopicDto) {
+    await this.quota.assertWithinQuota(creatorId, 'topics');
     return this.prisma.topic.create({
       data: {
         title: dto.title,
@@ -292,6 +295,7 @@ export class TopicsService {
     }
 
     let parentAuthorId: string | null = null;
+    await this.quota.assertWithinQuota(authorId, 'comments');
     if (dto.parentId) {
       const parent = await this.prisma.comment.findUnique({
         where: { id: dto.parentId },
@@ -399,6 +403,8 @@ export class TopicsService {
     if (side.topic.status !== 'APPROVED') {
       throw new BadRequestException('Bu konu henuz onaylanmadigi icin delil eklenemez.');
     }
+
+    await this.quota.assertWithinQuota(authorId, 'evidences');
 
     const evidence = await this.prisma.evidence.create({
       data: {

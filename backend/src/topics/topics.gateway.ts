@@ -10,9 +10,15 @@ import { Server, Socket } from 'socket.io';
 /**
  * Topic-scoped realtime transport. Clients join one topic room and receive
  * only events for that topic, keeping traffic bounded as the site grows.
+ *
+ * CORS, REST tarafiyla ayni CORS_ORIGINS listesini kullanir.
  */
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: {
+    origin: process.env.CORS_ORIGINS?.trim()
+      ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+      : '*',
+  },
   namespace: '/realtime',
 })
 export class TopicsGateway {

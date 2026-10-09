@@ -4,10 +4,11 @@ import { TopicsController } from './topics.controller';
 import { EvidenceScoringModule } from '../evidence-scoring/evidence-scoring.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CommonModule } from '../common/common.module';
 import { TopicsGateway } from './topics.gateway';
 
 @Module({
-  imports: [EvidenceScoringModule, UsersModule, NotificationsModule],
+  imports: [EvidenceScoringModule, UsersModule, NotificationsModule, CommonModule],
   controllers: [TopicsController],
   providers: [TopicsService, TopicsGateway],
   exports: [TopicsService],

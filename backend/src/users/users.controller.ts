@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PayoutEligibilityService } from './payout-eligibility.service';
+import { QuotaService } from '../common/quota.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -17,6 +18,7 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private payoutEligibility: PayoutEligibilityService,
+    private quota: QuotaService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -34,6 +36,12 @@ export class UsersController {
   @Get('payout-rules')
   getPayoutRules() {
     return this.payoutEligibility.rules();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/quota')
+  getMyQuota(@CurrentUser() user: { id: string }) {
+    return this.quota.usage(user.id);
   }
 
   @UseGuards(JwtAuthGuard)

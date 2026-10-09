@@ -9,6 +9,9 @@ interface Evidence {
   sourceUrl: string | null;
   score: number | null;
   aiReasoning: string | null;
+  voteScore: number;
+  voteCount: number;
+  myVote: number;
   author: { username: string; displayName: string | null };
 }
 
@@ -38,6 +41,64 @@ function verdictColor(score: number | null) {
   if (score >= 70) return 'text-verdict-strong border-verdict-strong';
   if (score >= 40) return 'text-verdict-mid border-verdict-mid';
   return 'text-verdict-weak border-verdict-weak';
+}
+
+function VoteButtons({ evidence }: { evidence: Evidence }) {
+  const { accessToken, user } = useAuth();
+  const [myVote, setMyVote] = useState(evidence.myVote);
+  const [voteScore, setVoteScore] = useState(evidence.voteScore);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const isOwn = user?.username === evidence.author.username;
+
+  async function cast(value: number) {
+    if (!user || busy) return;
+    const next = myVote === value ? 0 : value;
+    setBusy(true);
+    setError('');
+    try {
+      const res = await apiRequest<{ voteScore: number; myVote: number }>(
+        `/topics/evidences/${evidence.id}/vote`,
+        { method: 'POST', token: accessToken, body: { value: next } },
+      );
+      setMyVote(res.myVote);
+      setVoteScore(res.voteScore);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Oy verilemedi.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-2 mt-3 border-t border-line pt-2">
+      <button
+        type="button"
+        onClick={() => cast(1)}
+        disabled={!user || isOwn || busy}
+        title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Katiliyorum'}
+        className={`font-mono text-xs px-2 py-0.5 rounded-sm border transition-colors disabled:opacity-40 ${
+          myVote === 1 ? 'border-brass text-brass' : 'border-line text-parchment-dim hover:text-parchment'
+        }`}
+      >
+        &uarr;
+      </button>
+      <span className="font-mono text-xs text-parchment-dim w-8 text-center">{voteScore}</span>
+      <button
+        type="button"
+        onClick={() => cast(-1)}
+        disabled={!user || isOwn || busy}
+        title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Katilmiyorum'}
+        className={`font-mono text-xs px-2 py-0.5 rounded-sm border transition-colors disabled:opacity-40 ${
+          myVote === -1 ? 'border-verdict-weak text-verdict-weak' : 'border-line text-parchment-dim hover:text-parchment'
+        }`}
+      >
+        &darr;
+      </button>
+      {error && <span className="font-mono text-xs text-verdict-weak">{error}</span>}
+    </div>
+  );
 }
 
 function EvidenceCard({ evidence, exhibitLabel }: { evidence: Evidence; exhibitLabel: string }) {
@@ -70,6 +131,7 @@ function EvidenceCard({ evidence, exhibitLabel }: { evidence: Evidence; exhibitL
       <p className="font-mono text-xs text-parchment-dim mt-2">
         {evidence.author.displayName ?? evidence.author.username}
       </p>
+      <VoteButtons evidence={evidence} />
     </div>
   );
 }
@@ -188,15 +250,16 @@ export default function TopicDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [topic, setTopic] = useState<Topic | null>(null);
   const [loading, setLoading] = useState(true);
+  const { accessToken } = useAuth();
 
   function load() {
     if (!id) return;
-    apiRequest<Topic>(`/topics/${id}`)
+    apiRequest<Topic>(`/topics/${id}`, { token: accessToken })
       .then(setTopic)
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [id]);
+  useEffect(load, [id, accessToken]);
 
   if (loading) {
     return <div className="min-h-screen bg-ink text-parchment-dim text-sm p-6">yukleniyor...</div>;

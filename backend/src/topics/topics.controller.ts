@@ -11,7 +11,9 @@ import { TopicsService } from './topics.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { ModerateTopicDto } from './dto/moderate-topic.dto';
+import { VoteEvidenceDto } from './dto/vote-evidence.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -38,9 +40,20 @@ export class TopicsController {
     return this.topicsService.findPending();
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.topicsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user?: { id: string }) {
+    return this.topicsService.findOne(id, user?.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('evidences/:evidenceId/vote')
+  voteEvidence(
+    @Param('evidenceId') evidenceId: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: VoteEvidenceDto,
+  ) {
+    return this.topicsService.voteEvidence(evidenceId, user.id, dto.value);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

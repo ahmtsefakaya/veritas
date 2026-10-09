@@ -44,6 +44,7 @@ model User {
 
   topics    Topic[]
   evidences Evidence[]
+  votes     EvidenceVote[]
 
   @@map("users")
 }
@@ -88,5 +89,22 @@ model Evidence {
   aiReasoning String?
   createdAt   DateTime @default(now())
 
+  votes EvidenceVote[]
+
   @@map("evidences")
+}
+
+model EvidenceVote {
+  id         String   @id @default(uuid())
+  evidenceId String
+  evidence   Evidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value      Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([evidenceId, userId])
+  @@index([evidenceId])
+  @@map("evidence_votes")
 }

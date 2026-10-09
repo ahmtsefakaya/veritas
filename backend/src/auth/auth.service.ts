@@ -47,6 +47,18 @@ export class AuthService {
     };
   }
 
+  private isBootstrapAdmin(email: string): boolean {
+    const raw = this.config.get<string>('ADMIN_EMAILS', '');
+    if (!raw) {
+      return false;
+    }
+    return raw
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+      .includes(email.trim().toLowerCase());
+  }
+
   private async issueTokens(userId: string, email: string, username: string, role: string): Promise<TokenPair> {
     const payload = { sub: userId, email, username, role };
 
@@ -90,6 +102,7 @@ export class AuthService {
         username: dto.username,
         displayName: dto.displayName ?? dto.username,
         passwordHash,
+        role: this.isBootstrapAdmin(dto.email) ? 'ADMIN' : 'USER',
       },
     });
 

@@ -34,12 +34,46 @@ export class TopicsService {
     });
   }
 
+  private withScores<
+    T extends {
+      sides: { id: string; position: string; label: string; evidences?: { score: number | null }[] }[];
+    },
+  >(topic: T) {
+    const sides = topic.sides.map((side) => {
+      const evidences = side.evidences ?? [];
+      const scored = evidences.filter((e) => typeof e.score === 'number');
+      const totalScore = scored.reduce((sum, e) => sum + (e.score as number), 0);
+      return {
+        ...side,
+        evidenceCount: evidences.length,
+        scoredCount: scored.length,
+        totalScore,
+        averageScore: scored.length ? Math.round(totalScore / scored.length) : null,
+      };
+    });
+
+    const best = [...sides].sort((a, b) => b.totalScore - a.totalScore);
+    const isTie = best.length > 1 && best[0].totalScore === best[1].totalScore;
+    const hasAnyScore = sides.some((s) => s.scoredCount > 0);
+
+    return {
+      ...topic,
+      sides,
+      leadingSideId: !hasAnyScore || isTie ? null : best[0].id,
+      isTie: hasAnyScore && isTie,
+    };
+  }
+
   async findApproved() {
-    return this.prisma.topic.findMany({
+    const topics = await this.prisma.topic.findMany({
       where: { status: 'APPROVED' },
-      include: { sides: true },
+      include: {
+        sides: { include: { evidences: { select: { score: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
+
+    return topics.map((topic) => this.withScores(topic));
   }
 
   async findPending() {
@@ -69,7 +103,7 @@ export class TopicsService {
       throw new NotFoundException('Konu bulunamadi.');
     }
 
-    return topic;
+    return this.withScores(topic);
   }
 
   async moderate(topicId: string, dto: ModerateTopicDto) {

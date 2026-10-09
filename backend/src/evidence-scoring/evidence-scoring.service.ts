@@ -13,6 +13,15 @@ export class EvidenceScoringService {
   ) {}
 
   async enqueueScoring(evidenceId: string) {
-    await this.scoringQueue.add('score-evidence', { evidenceId });
+    await this.scoringQueue.add(
+      'score-evidence',
+      { evidenceId },
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      },
+    );
   }
 }

@@ -13,14 +13,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<AuthPage />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/" element={<HomePage />} />
           <Route
             path="/new-topic"
             element={
@@ -29,14 +22,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/topics/:id"
-            element={
-              <ProtectedRoute>
-                <TopicDetailPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/topics/:id" element={<TopicDetailPage />} />
           <Route
             path="/admin"
             element={

@@ -7,6 +7,8 @@ interface Side {
   id: string;
   position: 'A' | 'B';
   label: string;
+  totalScore: number;
+  evidenceCount: number;
 }
 
 interface Topic {
@@ -16,6 +18,7 @@ interface Topic {
   category: string;
   status: string;
   sides: Side[];
+  leadingSideId: string | null;
   createdAt: string;
 }
 
@@ -59,15 +62,26 @@ export default function HomePage() {
         </nav>
 
         <div className="border-t border-line pt-4">
-          <p className="font-mono text-xs text-parchment truncate">
-            {user?.displayName ?? user?.username}
-          </p>
-          <button
-            onClick={logout}
-            className="font-mono text-xs text-parchment-dim hover:text-brass transition-colors mt-1"
-          >
-            cikis yap
-          </button>
+          {user ? (
+            <>
+              <p className="font-mono text-xs text-parchment truncate">
+                {user.displayName ?? user.username}
+              </p>
+              <button
+                onClick={logout}
+                className="font-mono text-xs text-parchment-dim hover:text-brass transition-colors mt-1"
+              >
+                cikis yap
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="font-mono text-xs text-brass hover:text-parchment transition-colors"
+            >
+              giris yap / kayit ol
+            </Link>
+          )}
         </div>
       </aside>
 
@@ -117,9 +131,13 @@ export default function HomePage() {
                 {topic.sides.map((side) => (
                   <span
                     key={side.id}
-                    className="font-mono text-xs px-2.5 py-1 rounded-sm border border-line text-parchment-dim"
+                    className={`font-mono text-xs px-2.5 py-1 rounded-sm border ${
+                      topic.leadingSideId === side.id
+                        ? 'border-brass text-brass'
+                        : 'border-line text-parchment-dim'
+                    }`}
                   >
-                    {side.position} &middot; {side.label}
+                    {side.position} &middot; {side.label} &middot; {side.totalScore}
                   </span>
                 ))}
               </div>

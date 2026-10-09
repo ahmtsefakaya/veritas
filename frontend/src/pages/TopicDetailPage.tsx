@@ -17,6 +17,10 @@ interface Side {
   position: 'A' | 'B';
   label: string;
   evidences: Evidence[];
+  totalScore: number;
+  averageScore: number | null;
+  evidenceCount: number;
+  scoredCount: number;
 }
 
 interface Topic {
@@ -25,6 +29,8 @@ interface Topic {
   description: string;
   category: string;
   sides: Side[];
+  leadingSideId: string | null;
+  isTie: boolean;
 }
 
 function verdictColor(score: number | null) {
@@ -68,12 +74,20 @@ function EvidenceCard({ evidence, exhibitLabel }: { evidence: Evidence; exhibitL
   );
 }
 
-function SideColumn({ side, onAdded }: { side: Side; onAdded: () => void }) {
+function SideColumn({
+  side,
+  isLeading,
+  onAdded,
+}: {
+  side: Side;
+  isLeading: boolean;
+  onAdded: () => void;
+}) {
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
 
   const sorted = [...side.evidences].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
 
@@ -99,9 +113,22 @@ function SideColumn({ side, onAdded }: { side: Side; onAdded: () => void }) {
 
   return (
     <div className="flex-1 min-w-0">
-      <div className="flex items-baseline gap-2 mb-4">
+      <div className="flex items-baseline gap-2 mb-2 flex-wrap">
         <span className="font-mono text-xs text-parchment-dim">TARAF {side.position}</span>
         <h3 className="font-display text-lg text-parchment">{side.label}</h3>
+        {isLeading && (
+          <span className="font-mono text-xs px-2 py-0.5 rounded-sm border border-brass text-brass">
+            onde
+          </span>
+        )}
+      </div>
+
+      <div className="flex gap-3 mb-4 font-mono text-xs text-parchment-dim">
+        <span>toplam {side.totalScore}</span>
+        <span>ort {side.averageScore ?? '-'}</span>
+        <span>
+          {side.scoredCount}/{side.evidenceCount} kanit puanlandi
+        </span>
       </div>
 
       <div className="space-y-3 mb-5">
@@ -117,31 +144,42 @@ function SideColumn({ side, onAdded }: { side: Side; onAdded: () => void }) {
         ))}
       </div>
 
-      <form onSubmit={handleAdd} className="space-y-2 border-t border-line pt-4">
-        <textarea
-          placeholder="Kanitini sun..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          required
-          rows={3}
-          className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
-        />
-        <input
-          type="url"
-          placeholder="Kaynak linki (opsiyonel)"
-          value={sourceUrl}
-          onChange={(e) => setSourceUrl(e.target.value)}
-          className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
-        />
-        {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full py-2 rounded-sm bg-brass hover:bg-brass-light text-ink text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          {submitting ? 'sunuluyor...' : 'kanit sun'}
-        </button>
-      </form>
+      {user ? (
+        <form onSubmit={handleAdd} className="space-y-2 border-t border-line pt-4">
+          <textarea
+            placeholder="Kanitini sun..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+            rows={3}
+            className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
+          />
+          <input
+            type="url"
+            placeholder="Kaynak linki (opsiyonel)"
+            value={sourceUrl}
+            onChange={(e) => setSourceUrl(e.target.value)}
+            className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
+          />
+          {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full py-2 rounded-sm bg-brass hover:bg-brass-light text-ink text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {submitting ? 'sunuluyor...' : 'kanit sun'}
+          </button>
+        </form>
+      ) : (
+        <div className="border-t border-line pt-4">
+          <Link
+            to="/login"
+            className="block w-full text-center py-2 rounded-sm border border-brass text-brass hover:bg-ink-2 text-sm transition-colors"
+          >
+            kanit sunmak icin giris yap
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -187,14 +225,24 @@ export default function TopicDetailPage() {
             {topic.sides
               .filter((s) => s.position === 'A')
               .map((side) => (
-                <SideColumn key={side.id} side={side} onAdded={load} />
+                <SideColumn
+                  key={side.id}
+                  side={side}
+                  isLeading={topic.leadingSideId === side.id}
+                  onAdded={load}
+                />
               ))}
           </div>
           <div className="md:pl-8 flex-1">
             {topic.sides
               .filter((s) => s.position === 'B')
               .map((side) => (
-                <SideColumn key={side.id} side={side} onAdded={load} />
+                <SideColumn
+                  key={side.id}
+                  side={side}
+                  isLeading={topic.leadingSideId === side.id}
+                  onAdded={load}
+                />
               ))}
           </div>
         </div>

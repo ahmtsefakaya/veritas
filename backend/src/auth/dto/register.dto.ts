@@ -1,4 +1,4 @@
-import { IsEmail, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class RegisterDto {
   @IsEmail({}, { message: 'Gecerli bir e-posta adresi girin.' })
@@ -20,6 +20,7 @@ export class RegisterDto {
   })
   password: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(50)
   displayName?: string;

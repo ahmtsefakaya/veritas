@@ -22,6 +22,7 @@ export class UsersService {
         bio: true,
         role: true,
         reputationScore: true,
+        pointsBalance: true,
         totalEarnings: true,
         createdAt: true,
       },
@@ -44,6 +45,7 @@ export class UsersService {
         bio: true,
         role: true,
         reputationScore: true,
+        pointsBalance: true,
         createdAt: true,
       },
     });

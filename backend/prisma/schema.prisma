@@ -36,6 +36,7 @@ model User {
   role              UserRole @default(USER)
   reputationScore   Int      @default(0)
   totalEarnings     Decimal  @default(0) @db.Decimal(12, 2)
+  pointsBalance     Int      @default(0)
   refreshTokenHash  String?
   isEmailVerified   Boolean  @default(false)
   isBanned          Boolean  @default(false)
@@ -46,8 +47,23 @@ model User {
   evidences Evidence[]
   votes     EvidenceVote[]
   comments  Comment[]
+  pointTransactions PointTransaction[]
 
   @@map("users")
+}
+
+model PointTransaction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta     Int
+  reason    String
+  sourceKey String   @unique
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("point_transactions")
 }
 
 model Topic {
@@ -108,6 +124,7 @@ model Evidence {
   sourceUrl   String?
   score       Int?
   aiReasoning String?
+  qualityBreakdown Json?
   createdAt   DateTime @default(now())
 
   votes EvidenceVote[]

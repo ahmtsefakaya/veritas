@@ -11,6 +11,13 @@ interface Evidence {
   sourceUrl: string | null;
   score: number | null;
   aiReasoning: string | null;
+  qualityBreakdown: {
+    sourceReliability: number;
+    verifiability: number;
+    relevance: number;
+    specificity: number;
+    timeliness: number;
+  } | null;
   voteScore: number;
   voteCount: number;
   myVote: number;
@@ -129,6 +136,15 @@ function EvidenceCard({ evidence, exhibitLabel }: { evidence: Evidence; exhibitL
         <p className="text-xs text-parchment-dim mt-2 leading-relaxed border-t border-line pt-2">
           {evidence.aiReasoning}
         </p>
+      )}
+      {evidence.qualityBreakdown && (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 border-t border-line pt-2 font-mono text-xs text-parchment-dim">
+          <span>kaynak {evidence.qualityBreakdown.sourceReliability}/35</span>
+          <span>dogrulama {evidence.qualityBreakdown.verifiability}/25</span>
+          <span>alaka {evidence.qualityBreakdown.relevance}/20</span>
+          <span>somutluk {evidence.qualityBreakdown.specificity}/15</span>
+          <span>baglam {evidence.qualityBreakdown.timeliness}/5</span>
+        </div>
       )}
       <p className="font-mono text-xs text-parchment-dim mt-2">
         {evidence.author.displayName ?? evidence.author.username}

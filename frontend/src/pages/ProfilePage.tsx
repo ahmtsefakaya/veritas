@@ -18,6 +18,7 @@ interface Profile {
   bio: string | null;
   role: string;
   reputationScore: number;
+  pointsBalance: number;
   createdAt: string;
   stats: {
     evidenceCount: number;
@@ -82,6 +83,8 @@ export default function ProfilePage() {
             <div className="text-right">
               <p className="font-mono text-xs text-parchment-dim">itibar</p>
               <p className="font-display text-3xl text-brass">{profile.reputationScore}</p>
+              <p className="font-mono text-xs text-parchment-dim mt-2">odul puani</p>
+              <p className="font-display text-xl text-brass">{profile.pointsBalance}</p>
               {rank >= 0 && <p className="font-mono text-xs text-parchment-dim">#{rank + 1} liderlik</p>}
             </div>
           </div>

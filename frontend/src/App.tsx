@@ -8,6 +8,9 @@ import TopicDetailPage from './pages/TopicDetailPage';
 import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import RewardsPage from './pages/RewardsPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import SettingsPage from './pages/SettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
   return (
@@ -27,6 +30,15 @@ export default function App() {
           <Route path="/topics/:id" element={<TopicDetailPage />} />
           <Route path="/users/:username" element={<ProfilePage />} />
           <Route path="/rewards" element={<RewardsPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={
@@ -35,6 +47,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

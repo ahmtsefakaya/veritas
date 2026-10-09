@@ -48,6 +48,7 @@ puanı uygulama içi puandır, para değildir — gerçek para dağıtımı yap�
 - [x] Güvenlik ve kötüye kullanım önleme (helmet, CORS, throttle, kota)
 - [x] Kaynak şikâyet ve yeniden değerlendirme akışı
 - [x] Yönetim paneli (kullanıcı/rol/kısıtlama yönetimi + platform istatistikleri)
+- [x] Hesap ayarları, itibar sıralaması sayfası, 404 sayfası ve SEO meta etiketleri
 - [ ] Mobil uygulama (React Native / Expo)
 
 ## API (yönetim)

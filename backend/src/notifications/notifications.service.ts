@@ -6,6 +6,7 @@ export type NotificationType =
   | 'comment_reply'
   | 'topic_comment'
   | 'topic_moderated'
+  | 'account_moderated'
   | 'reward_points'
   | 'payout_eligible';
 

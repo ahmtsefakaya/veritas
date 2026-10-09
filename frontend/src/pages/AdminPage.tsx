@@ -29,6 +29,36 @@ interface Report {
   };
 }
 
+interface AdminUser {
+  id: string;
+  username: string;
+  displayName: string | null;
+  email: string;
+  role: string;
+  isBanned: boolean;
+  isPremium: boolean;
+  isEmailVerified: boolean;
+  reputationScore: number;
+  pointsBalance: number;
+  country: string | null;
+  createdAt: string;
+  _count: { evidences: number; topics: number; comments: number };
+}
+
+interface AdminStats {
+  users: number;
+  bannedUsers: number;
+  staff: number;
+  newUsers7d: number;
+  topics: number;
+  pendingTopics: number;
+  evidences: number;
+  scoredEvidences: number;
+  averageQuality: number;
+  openReports: number;
+  pointsGranted: number;
+}
+
 const REASON_LABELS: Record<string, string> = {
   FAKE_SOURCE: 'kaynak sahte',
   BROKEN_SOURCE: 'kaynak linki calismiyor',
@@ -41,24 +71,55 @@ const REASON_LABELS: Record<string, string> = {
 export default function AdminPage() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
-  const [tab, setTab] = useState<'topics' | 'reports'>('topics');
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [userQuery, setUserQuery] = useState('');
+  const [tab, setTab] = useState<'topics' | 'reports' | 'users' | 'stats'>('topics');
   const [loading, setLoading] = useState(true);
-  const { accessToken } = useAuth();
+  const [actionError, setActionError] = useState<string | null>(null);
+  const { accessToken, user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   function load() {
     setLoading(true);
     Promise.all([
       apiRequest<Topic[]>('/topics/pending', { token: accessToken }).catch(() => []),
       apiRequest<Report[]>('/topics/reports/queue', { token: accessToken }).catch(() => []),
+      apiRequest<AdminUser[]>(
+        `/admin/users${userQuery.trim() ? `?q=${encodeURIComponent(userQuery.trim())}` : ''}`,
+        { token: accessToken },
+      ).catch(() => []),
+      apiRequest<AdminStats>('/admin/stats', { token: accessToken }).catch(() => null),
     ])
-      .then(([pendingTopics, reportQueue]) => {
+      .then(([pendingTopics, reportQueue, userList, platformStats]) => {
         setTopics(pendingTopics);
         setReports(reportQueue);
+        setUsers(userList);
+        setStats(platformStats);
       })
       .finally(() => setLoading(false));
   }
 
   useEffect(load, []);
+
+  async function updateUser(
+    target: AdminUser,
+    patch: { isBanned?: boolean; role?: string; isPremium?: boolean },
+  ) {
+    setActionError(null);
+    try {
+      const note =
+        patch.isBanned === true ? window.prompt('Kisitlama gerekcesi (opsiyonel)') : undefined;
+      await apiRequest(`/admin/users/${target.id}`, {
+        method: 'PATCH',
+        token: accessToken,
+        body: { ...patch, note: note || undefined },
+      });
+      load();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Islem basarisiz.');
+    }
+  }
 
   async function handleAction(topicId: string, action: 'APPROVE' | 'REJECT' | 'REQUEST_REVISION') {
     const note =
@@ -111,11 +172,36 @@ export default function AdminPage() {
           >
             kaynak bildirimleri ({reports.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setTab('users')}
+            className={`font-mono text-xs pb-1 border-b-2 transition-colors ${
+              tab === 'users'
+                ? 'border-brass text-brass'
+                : 'border-transparent text-parchment-dim hover:text-parchment'
+            }`}
+          >
+            kullanicilar ({users.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('stats')}
+            className={`font-mono text-xs pb-1 border-b-2 transition-colors ${
+              tab === 'stats'
+                ? 'border-brass text-brass'
+                : 'border-transparent text-parchment-dim hover:text-parchment'
+            }`}
+          >
+            istatistik
+          </button>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
         {loading && <p className="text-parchment-dim text-sm">yukleniyor...</p>}
+        {actionError && (
+          <p className="text-verdict-weak text-sm mb-4 font-mono text-xs">{actionError}</p>
+        )}
 
         {!loading && tab === 'topics' && (
           <>
@@ -244,6 +330,150 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+          </>
+        )}
+
+        {!loading && tab === 'users' && (
+          <>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                load();
+              }}
+              className="flex gap-2 mb-5"
+            >
+              <input
+                value={userQuery}
+                onChange={(event) => setUserQuery(event.target.value)}
+                placeholder="kullanici adi, e-posta veya isim ara"
+                className="flex-1 bg-ink-2 border border-line rounded-sm px-3 py-2 text-sm text-parchment placeholder:text-parchment-dim focus:outline-none focus:border-brass"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-sm border border-brass text-brass hover:bg-brass hover:text-ink text-sm font-medium transition-colors"
+              >
+                ara
+              </button>
+            </form>
+
+            <p className="text-xs text-parchment-dim mb-4 leading-relaxed">
+              Kisitlama erisimi engeller; kanit kalite puanlarini ve odul puanlarini
+              degistirmez. Rol ve abonelik degisikligi yalnizca yonetici yetkisiyle yapilir.
+            </p>
+
+            {users.length === 0 && <p className="text-parchment-dim text-sm">kullanici bulunamadi.</p>}
+
+            <div className="space-y-3">
+              {users.map((person) => (
+                <div key={person.id} className="border border-line rounded-sm p-4 bg-ink-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Link
+                        to={`/users/${person.username}`}
+                        className="font-display text-base text-brass hover:underline"
+                      >
+                        {person.displayName || person.username}
+                      </Link>
+                      <p className="font-mono text-xs text-parchment-dim mt-0.5">
+                        @{person.username} &middot; {person.email}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="font-mono text-xs text-parchment-dim">{person.role}</span>
+                      {person.isBanned && (
+                        <span className="font-mono text-xs text-verdict-weak">kisitli</span>
+                      )}
+                      {person.isPremium && (
+                        <span className="font-mono text-xs text-verdict-strong">abone</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="font-mono text-xs text-parchment-dim mt-3">
+                    itibar {person.reputationScore} &middot; puan {person.pointsBalance} &middot;
+                    kanit {person._count.evidences} &middot; dava {person._count.topics} &middot;
+                    yorum {person._count.comments}
+                  </p>
+                  <p className="font-mono text-xs text-parchment-dim mt-1">
+                    kayit: {new Date(person.createdAt).toLocaleDateString('tr-TR')}
+                    {person.country ? ` · ${person.country}` : ''}
+                    {person.isEmailVerified ? ' · e-posta dogrulanmis' : ' · e-posta dogrulanmamis'}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <button
+                      onClick={() => updateUser(person, { isBanned: !person.isBanned })}
+                      className={`px-3 py-1.5 rounded-sm border text-xs font-medium transition-colors ${
+                        person.isBanned
+                          ? 'border-verdict-strong text-verdict-strong hover:bg-verdict-strong hover:text-ink'
+                          : 'border-verdict-weak text-verdict-weak hover:bg-verdict-weak hover:text-ink'
+                      }`}
+                    >
+                      {person.isBanned ? 'kisitlamayi kaldir' : 'kisitla'}
+                    </button>
+                    {isAdmin && person.role !== 'MODERATOR' && (
+                      <button
+                        onClick={() => updateUser(person, { role: 'MODERATOR' })}
+                        className="px-3 py-1.5 rounded-sm border border-line text-parchment-dim hover:text-parchment text-xs font-medium transition-colors"
+                      >
+                        moderator yap
+                      </button>
+                    )}
+                    {isAdmin && person.role !== 'USER' && (
+                      <button
+                        onClick={() => updateUser(person, { role: 'USER' })}
+                        className="px-3 py-1.5 rounded-sm border border-line text-parchment-dim hover:text-parchment text-xs font-medium transition-colors"
+                      >
+                        yetkiyi kaldir
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => updateUser(person, { isPremium: !person.isPremium })}
+                        className="px-3 py-1.5 rounded-sm border border-line text-parchment-dim hover:text-parchment text-xs font-medium transition-colors"
+                      >
+                        {person.isPremium ? 'aboneligi kapat' : 'abonelik ver'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && tab === 'stats' && (
+          <>
+            {!stats && <p className="text-parchment-dim text-sm">istatistik alinamadi.</p>}
+            {stats && (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {[
+                    ['kullanici', stats.users],
+                    ['son 7 gun yeni', stats.newUsers7d],
+                    ['kisitli hesap', stats.bannedUsers],
+                    ['yetkili', stats.staff],
+                    ['dava', stats.topics],
+                    ['onay bekleyen dava', stats.pendingTopics],
+                    ['kanit', stats.evidences],
+                    ['puanlanan kanit', stats.scoredEvidences],
+                    ['ortalama kalite', `${stats.averageQuality}/100`],
+                    ['acik bildirim', stats.openReports],
+                    ['dagitilan odul puani', stats.pointsGranted],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="border border-line rounded-sm p-4 bg-ink-2">
+                      <p className="font-mono text-xs text-parchment-dim">{label}</p>
+                      <p className="font-display text-xl text-parchment mt-1">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-parchment-dim mt-5 leading-relaxed">
+                  Ortalama kalite yalnizca yapay zekanin kanit degerlendirmelerinden gelir;
+                  kullanici oylari ve yorumlar bu sayiyi etkilemez. Odul puani uygulama ici
+                  puandir, para degildir.
+                </p>
+              </>
+            )}
           </>
         )}
       </main>

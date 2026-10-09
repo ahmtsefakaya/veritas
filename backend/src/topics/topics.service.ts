@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { ModerateTopicDto, ModerationAction } from './dto/moderate-topic.dto';
 
 @Injectable()
@@ -176,6 +178,109 @@ export class TopicsService {
       voteCount: count,
       myVote: value,
     };
+  }
+
+  async listComments(topicId: string) {
+    const topic = await this.prisma.topic.findUnique({
+      where: { id: topicId },
+      select: { id: true },
+    });
+    if (!topic) {
+      throw new NotFoundException('Konu bulunamadi.');
+    }
+
+    const comments = await this.prisma.comment.findMany({
+      where: { topicId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        author: { select: { id: true, username: true, displayName: true } },
+      },
+    });
+
+    const visible = comments.map((c) => ({
+      id: c.id,
+      parentId: c.parentId,
+      content: c.isDeleted ? null : c.content,
+      isDeleted: c.isDeleted,
+      createdAt: c.createdAt,
+      author: c.isDeleted ? null : c.author,
+    }));
+
+    const byId = new Map(visible.map((c) => [c.id, { ...c, replies: [] as any[] }]));
+    const roots: any[] = [];
+    for (const c of byId.values()) {
+      if (c.parentId && byId.has(c.parentId)) {
+        byId.get(c.parentId)!.replies.push(c);
+      } else {
+        roots.push(c);
+      }
+    }
+
+    return roots;
+  }
+
+  async addComment(topicId: string, authorId: string, dto: CreateCommentDto) {
+    const topic = await this.prisma.topic.findUnique({
+      where: { id: topicId },
+      select: { id: true, status: true },
+    });
+    if (!topic) {
+      throw new NotFoundException('Konu bulunamadi.');
+    }
+    if (topic.status !== 'APPROVED') {
+      throw new BadRequestException('Bu konu henuz onaylanmadigi icin yorum yapilamaz.');
+    }
+
+    if (dto.parentId) {
+      const parent = await this.prisma.comment.findUnique({
+        where: { id: dto.parentId },
+        select: { id: true, topicId: true, parentId: true },
+      });
+      if (!parent || parent.topicId !== topicId) {
+        throw new BadRequestException('Yanit verilen yorum bu konuya ait degil.');
+      }
+      if (parent.parentId) {
+        throw new BadRequestException('Yanitlara yanit verilemez.');
+      }
+    }
+
+    const comment = await this.prisma.comment.create({
+      data: {
+        topicId,
+        authorId,
+        content: dto.content,
+        parentId: dto.parentId ?? null,
+      },
+      include: {
+        author: { select: { id: true, username: true, displayName: true } },
+      },
+    });
+
+    return { ...comment, replies: [] };
+  }
+
+  async deleteComment(commentId: string, user: { id: string; role: string }) {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { id: true, authorId: true, isDeleted: true },
+    });
+    if (!comment) {
+      throw new NotFoundException('Yorum bulunamadi.');
+    }
+
+    const isModerator = user.role === 'ADMIN' || user.role === 'MODERATOR';
+    if (comment.authorId !== user.id && !isModerator) {
+      throw new ForbiddenException('Bu yorumu silme yetkin yok.');
+    }
+
+    if (!comment.isDeleted) {
+      await this.prisma.comment.update({
+        where: { id: commentId },
+        data: { isDeleted: true },
+      });
+    }
+
+    return { id: commentId, isDeleted: true };
   }
 
   async moderate(topicId: string, dto: ModerateTopicDto) {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import CommentSection from '../components/CommentSection';
 
 interface Evidence {
   id: string;
@@ -309,6 +310,8 @@ export default function TopicDetailPage() {
               ))}
           </div>
         </div>
+
+        <CommentSection topicId={topic.id} />
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -10,6 +11,7 @@ import {
 import { TopicsService } from './topics.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { ModerateTopicDto } from './dto/moderate-topic.dto';
 import { VoteEvidenceDto } from './dto/vote-evidence.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -54,6 +56,30 @@ export class TopicsController {
     @Body() dto: VoteEvidenceDto,
   ) {
     return this.topicsService.voteEvidence(evidenceId, user.id, dto.value);
+  }
+
+  @Get(':id/comments')
+  listComments(@Param('id') id: string) {
+    return this.topicsService.listComments(id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/comments')
+  addComment(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+    @Body() dto: CreateCommentDto,
+  ) {
+    return this.topicsService.addComment(id, user.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('comments/:commentId')
+  deleteComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: { id: string; role: string },
+  ) {
+    return this.topicsService.deleteComment(commentId, user);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

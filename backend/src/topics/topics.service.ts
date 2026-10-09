@@ -9,6 +9,7 @@ import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.ser
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { ListTopicsDto } from './dto/list-topics.dto';
 import { ModerateTopicDto, ModerationAction } from './dto/moderate-topic.dto';
 
 @Injectable()
@@ -66,16 +67,65 @@ export class TopicsService {
     };
   }
 
-  async findApproved() {
-    const topics = await this.prisma.topic.findMany({
+  async findApproved(query: ListTopicsDto = {}) {
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit = query.limit && query.limit > 0 ? Math.min(query.limit, 50) : 10;
+    const search = query.q?.trim();
+
+    const where: any = { status: 'APPROVED' };
+    if (query.category?.trim()) {
+      where.category = { equals: query.category.trim(), mode: 'insensitive' };
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { sides: { some: { label: { contains: search, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const orderBy =
+      query.sort === 'old'
+        ? { createdAt: 'asc' as const }
+        : query.sort === 'active'
+          ? { updatedAt: 'desc' as const }
+          : { createdAt: 'desc' as const };
+
+    const [total, topics] = await Promise.all([
+      this.prisma.topic.count({ where }),
+      this.prisma.topic.findMany({
+        where,
+        include: {
+          sides: { include: { evidences: { select: { score: true } } } },
+          _count: { select: { comments: true } },
+        },
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      items: topics.map((topic: any) => {
+        const { _count, ...rest } = topic;
+        return { ...this.withScores(rest), commentCount: _count?.comments ?? 0 };
+      }),
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  async listCategories() {
+    const rows = await this.prisma.topic.groupBy({
+      by: ['category'],
       where: { status: 'APPROVED' },
-      include: {
-        sides: { include: { evidences: { select: { score: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
+      _count: { category: true },
+      orderBy: { _count: { category: 'desc' } },
     });
 
-    return topics.map((topic) => this.withScores(topic));
+    return rows.map((r) => ({ category: r.category, count: r._count.category }));
   }
 
   async findPending() {

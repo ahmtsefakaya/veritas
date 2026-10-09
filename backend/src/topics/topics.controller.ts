@@ -6,12 +6,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { TopicsService } from './topics.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { ListTopicsDto } from './dto/list-topics.dto';
 import { ModerateTopicDto } from './dto/moderate-topic.dto';
 import { VoteEvidenceDto } from './dto/vote-evidence.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -31,8 +33,13 @@ export class TopicsController {
   }
 
   @Get()
-  findApproved() {
-    return this.topicsService.findApproved();
+  findApproved(@Query() query: ListTopicsDto) {
+    return this.topicsService.findApproved(query);
+  }
+
+  @Get('categories')
+  listCategories() {
+    return this.topicsService.listCategories();
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

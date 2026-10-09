@@ -56,6 +56,25 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
+  const [verifySending, setVerifySending] = useState(false);
+  const [verifyNote, setVerifyNote] = useState('');
+
+  async function sendVerification() {
+    if (!accessToken) return;
+    setVerifySending(true);
+    setVerifyNote('');
+    try {
+      const res = await apiRequest<{ message: string }>('/auth/email/verify/request', {
+        method: 'POST',
+        token: accessToken,
+      });
+      setVerifyNote(res.message);
+    } catch (err) {
+      setVerifyNote((err as Error).message);
+    } finally {
+      setVerifySending(false);
+    }
+  }
 
   useEffect(() => {
     if (!accessToken) return;
@@ -149,6 +168,23 @@ export default function SettingsPage() {
                   <span className="text-rust">(dogrulanmadi)</span>
                 )}
               </p>
+              {!me.isEmailVerified && (
+                <div className="border border-line rounded-sm p-3 bg-ink-3">
+                  <p className="leading-relaxed">
+                    Odeme uygunlugu icin e-posta dogrulamasi gereklidir. Dogrulama baglantisi
+                    e-posta adresinize gonderilir ve 24 saat gecerlidir.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={sendVerification}
+                    disabled={verifySending}
+                    className="mt-2 font-mono text-xs px-3 py-1.5 rounded-sm border border-brass text-brass disabled:opacity-50"
+                  >
+                    {verifySending ? 'gonderiliyor...' : 'dogrulama baglantisi gonder'}
+                  </button>
+                  {verifyNote && <p className="mt-2 text-brass">{verifyNote}</p>}
+                </div>
+              )}
               <p>
                 rol: <span className="text-parchment">{me.role}</span>
               </p>

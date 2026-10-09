@@ -48,8 +48,30 @@ puanı uygulama içi puandır, para değildir — gerçek para dağıtımı yap�
 - [x] Güvenlik ve kötüye kullanım önleme (helmet, CORS, throttle, kota)
 - [x] Kaynak şikâyet ve yeniden değerlendirme akışı
 - [x] Yönetim paneli (kullanıcı/rol/kısıtlama yönetimi + platform istatistikleri)
-- [x] Hesap ayarları, itibar sıralaması sayfası, 404 sayfası ve SEO meta etiketleri
+- [x] Hesap ayarlari, itibar sıralaması sayfası, 404 sayfası ve SEO meta etiketleri
+- [x] E-posta doğrulama ve şifre sıfırlama (tek kullanımlık jeton, SHA-256 özet)
 - [ ] Mobil uygulama (React Native / Expo)
+
+## Hesap kurtarma akışları
+
+```
+POST /auth/email/verify/request   (JWT) dogrulama baglantisi ister -> 202
+POST /auth/email/verify           {token} -> 200 {ok, isEmailVerified}
+POST /auth/password/forgot        {email} -> 202 (hesap var/yok ayni cevap)
+POST /auth/password/reset         {token, password} -> 200
+```
+
+Jetonlar 32 baytlık rastgele veridir; veritabanında yalnızca SHA-256 özeti
+saklanır. Her jeton tek kullanımlıktır, aynı türden yeni talep eskisini
+geçersizleştirir. E-posta doğrulama jetonu 24 saat, şifre sıfırlama jetonu 1
+saat geçerlidir. Şifre sıfırlandığında `refreshTokenHash` silinir, böylece eski
+tüm oturumlar düşer. Hesap sayımını sızdırmamak için `password/forgot` kayıtlı
+olmayan adres için de aynı 202 cevabını döner. Hesap başına saatlik 3 talep
+sınırı vardır. Bu akışlar kanıt kalite puanına veya ödül puanına dokunmaz.
+
+E-posta gönderimi `MailService` üzerinden tek noktadan geçer; bir SMTP
+sağlayıcısı bağlanana kadar mesajlar loglanır. Bağlantı adresi `APP_URL`
+ortam değişkeninden üretilir.
 
 ## API (yönetim)
 

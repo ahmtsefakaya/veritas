@@ -10,6 +10,9 @@ import ProfilePage from './pages/ProfilePage';
 import RewardsPage from './pages/RewardsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import SettingsPage from './pages/SettingsPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -18,6 +21,9 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<AuthPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/" element={<HomePage />} />
           <Route
             path="/new-topic"

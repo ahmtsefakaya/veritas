@@ -8,6 +8,7 @@ interface User {
   displayName: string | null;
   role: string;
   reputationScore: number;
+  isEmailVerified?: boolean;
 }
 
 interface AuthContextType {

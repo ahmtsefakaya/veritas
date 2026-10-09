@@ -25,6 +25,11 @@ enum SidePosition {
   B
 }
 
+enum UserTokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
 model User {
   id                String   @id @default(uuid())
   email             String   @unique
@@ -53,8 +58,25 @@ model User {
   pointTransactions PointTransaction[]
   notifications     Notification[]
   evidenceReports   EvidenceReport[]
+  tokens            UserToken[]
 
   @@map("users")
+}
+
+/// Tek kullanimlik hesap islemi jetonlari (e-posta dogrulama, sifre sifirlama).
+/// Yalnizca SHA-256 ozeti saklanir; duz jeton sadece e-posta ile kullaniciya gider.
+model UserToken {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      UserTokenType
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, type])
+  @@map("user_tokens")
 }
 
 model PointTransaction {

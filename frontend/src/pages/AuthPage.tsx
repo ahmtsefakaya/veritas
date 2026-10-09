@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthPage() {
@@ -99,6 +99,15 @@ export default function AuthPage() {
         >
           {mode === 'login' ? 'hesabin yok mu -- kayit ol' : 'zaten hesabin var mi -- giris yap'}
         </button>
+
+        {mode === 'login' && (
+          <Link
+            to="/forgot-password"
+            className="block w-full mt-2 text-center text-xs font-mono text-parchment-dim hover:text-brass transition-colors"
+          >
+            sifremi unuttum
+          </Link>
+        )}
       </div>
     </div>
   );

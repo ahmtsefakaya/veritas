@@ -15,6 +15,7 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { CreateEvidenceDto } from './dto/create-evidence.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { ListTopicsDto } from './dto/list-topics.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { ModerateTopicDto } from './dto/moderate-topic.dto';
 import { VoteEvidenceDto } from './dto/vote-evidence.dto';
 import { ReportEvidenceDto } from './dto/report-evidence.dto';
@@ -114,8 +115,8 @@ export class TopicsController {
   }
 
   @Get(':id/comments')
-  listComments(@Param('id') id: string) {
-    return this.topicsService.listComments(id);
+  listComments(@Param('id') id: string, @Query() query: PaginationQueryDto) {
+    return this.topicsService.listComments(id, query);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -142,6 +143,15 @@ export class TopicsController {
   @Patch(':id/moderate')
   moderate(@Param('id') id: string, @Body() dto: ModerateTopicDto) {
     return this.topicsService.moderate(id, dto);
+  }
+
+  @Get('sides/:sideId/evidences')
+  listSideEvidences(
+    @Param('sideId') sideId: string,
+    @Query() query: PaginationQueryDto,
+    @CurrentUser() user?: { id: string },
+  ) {
+    return this.topicsService.listSideEvidences(sideId, query, user?.id);
   }
 
   @UseGuards(JwtAuthGuard)

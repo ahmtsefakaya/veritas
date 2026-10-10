@@ -197,11 +197,15 @@ function CommentItem({
 export default function CommentSection({ topicId }: { topicId: string }) {
   const { user, accessToken } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
+  const [totalComments, setTotalComments] = useState(0);
   const [loading, setLoading] = useState(true);
 
   function load() {
-    apiRequest<Comment[]>(`/topics/${topicId}/comments`)
-      .then(setComments)
+    apiRequest<{ items: Comment[]; total: number }>(`/topics/${topicId}/comments`)
+      .then((result) => {
+        setComments(result.items);
+        setTotalComments(result.total);
+      })
       .finally(() => setLoading(false));
   }
 
@@ -227,7 +231,7 @@ export default function CommentSection({ topicId }: { topicId: string }) {
     load();
   }
 
-  const total = comments.reduce((sum, c) => sum + 1 + c.replies.length, 0);
+  const total = totalComments || comments.reduce((sum, c) => sum + 1 + c.replies.length, 0);
 
   return (
     <section className="mt-10 border-t border-line pt-8">

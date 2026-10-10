@@ -5,6 +5,45 @@ import { apiRequest, AuthUser } from '../api/client';
 const ACCESS_KEY = 'veritas.accessToken';
 const REFRESH_KEY = 'veritas.refreshToken';
 
+/**
+ * Depolama katmani kasten "hic patlamaz" sekilde sarmalandi.
+ *
+ * Neden: AsyncStorage bir native modul. Surum uyusmazligi, Expo Go'nun
+ * paketlemedigi bir surum veya bozuk bir kurulum oldugunda modul null doner ve
+ * "Native module is null" hatasi yakalanmamis promise reddi olarak uygulamayi
+ * kirmiz ekrana dusurur. Oturumu hatirlayamamak kabul edilebilir bir kayip;
+ * uygulamanin hic acilmamasi degil. Bu yuzden her cagri yutulur ve en kotu
+ * durumda kullanici sadece tekrar giris yapar.
+ */
+const storage = {
+  async read(): Promise<{ access: string | null; refresh: string | null }> {
+    try {
+      const pairs = await AsyncStorage.multiGet([ACCESS_KEY, REFRESH_KEY]);
+      const map = new Map(pairs);
+      return { access: map.get(ACCESS_KEY) ?? null, refresh: map.get(REFRESH_KEY) ?? null };
+    } catch {
+      return { access: null, refresh: null };
+    }
+  },
+  async write(accessToken: string, refreshToken: string): Promise<void> {
+    try {
+      await AsyncStorage.multiSet([
+        [ACCESS_KEY, accessToken],
+        [REFRESH_KEY, refreshToken],
+      ]);
+    } catch {
+      // oturum bu cihazda hatirlanmayacak, akis bozulmuyor
+    }
+  },
+  async clear(): Promise<void> {
+    try {
+      await AsyncStorage.multiRemove([ACCESS_KEY, REFRESH_KEY]);
+    } catch {
+      // zaten erisilemiyor, temizlenecek bir sey de yok
+    }
+  },
+};
+
 interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
@@ -27,10 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const persist = async (tokens: TokenPair) => {
-    await AsyncStorage.setMany({
-      [ACCESS_KEY]: tokens.accessToken,
-      [REFRESH_KEY]: tokens.refreshToken,
-    });
+    await storage.write(tokens.accessToken, tokens.refreshToken);
     setAccessToken(tokens.accessToken);
     setUser(await apiRequest<AuthUser>('/users/me', { token: tokens.accessToken }));
   };
@@ -43,9 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getMany([ACCESS_KEY, REFRESH_KEY]);
-        const access = stored[ACCESS_KEY];
-        const refresh = stored[REFRESH_KEY];
+        const { access, refresh } = await storage.read();
         if (access) {
           try {
             setUser(await apiRequest<AuthUser>('/users/me', { token: access }));
@@ -63,9 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await persist(tokens);
           return;
         }
-        await AsyncStorage.removeMany([ACCESS_KEY, REFRESH_KEY]);
+        await storage.clear();
       } catch {
-        await AsyncStorage.removeMany([ACCESS_KEY, REFRESH_KEY]);
+        await storage.clear();
         setUser(null);
         setAccessToken(null);
       } finally {
@@ -94,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await persist(res.tokens);
       },
       logout: async () => {
-        await AsyncStorage.removeMany([ACCESS_KEY, REFRESH_KEY]);
+        await storage.clear();
         setUser(null);
         setAccessToken(null);
       },

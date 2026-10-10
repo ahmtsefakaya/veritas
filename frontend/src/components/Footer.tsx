@@ -15,7 +15,7 @@ export default function Footer() {
         {LINKS.map((link) => (
           // py-2: dokunma hedefi. Baglantilar 16px yuksekligindeydi ve
           // telefonda isabet ettirmek zordu.
-          <Link key={link.to} to={link.to} className="py-2 hover:text-brass transition-colors">
+          <Link key={link.to} to={link.to} className="py-2 min-h-[44px] inline-flex items-center hover:text-brass transition-colors">
             {link.label}
           </Link>
         ))}

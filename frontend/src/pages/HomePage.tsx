@@ -223,19 +223,19 @@ export default function HomePage() {
           </div>
 
           <nav className="mt-3 flex items-center gap-4 flex-wrap">
-            <Link to="/leaderboard" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
+            <Link to="/leaderboard" className="font-mono text-xs py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-parchment-dim hover:text-brass transition-colors">
               siralama
             </Link>
-            <Link to="/rewards" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
+            <Link to="/rewards" className="font-mono text-xs py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-parchment-dim hover:text-brass transition-colors">
               odul
             </Link>
             {user && (
-              <Link to="/settings" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
+              <Link to="/settings" className="font-mono text-xs py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-parchment-dim hover:text-brass transition-colors">
                 ayarlar
               </Link>
             )}
             {(user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
-              <Link to="/admin" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
+              <Link to="/admin" className="font-mono text-xs py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-parchment-dim hover:text-brass transition-colors">
                 moderasyon
               </Link>
             )}
@@ -247,7 +247,7 @@ export default function HomePage() {
                 cikis yap
               </button>
             ) : (
-              <Link to="/login" className="font-mono text-xs py-1 text-brass hover:text-parchment transition-colors ml-auto">
+              <Link to="/login" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-brass hover:text-parchment transition-colors ml-auto">
                 giris yap / kayit ol
               </Link>
             )}

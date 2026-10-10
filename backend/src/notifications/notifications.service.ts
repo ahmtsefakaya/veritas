@@ -6,6 +6,7 @@ export type NotificationType =
   | 'comment_reply'
   | 'topic_comment'
   | 'topic_moderated'
+  | 'topic_pending_review'
   | 'account_moderated'
   | 'reward_points'
   | 'payout_eligible';
@@ -131,5 +132,39 @@ export class NotificationsService {
       body: 'Tum uygunluk sartlarini tamamladiniz. Detaylari odul programi sayfasindan gorebilirsiniz.',
       link: '/rewards',
     });
+  }
+
+  /**
+   * Yeni dava onay bekliyor: tum ADMIN ve MODERATOR'lere haber verilir.
+   *
+   * Neden gerekli: dava acildiginda PENDING durumda bekliyor ve onaylanana
+   * kadar kimseye gorunmuyor. Kuyruga bakan biri olmazsa dava sonsuza kadar
+   * bekler, kullanici da urunun bozuk oldugunu dusunur. Bildirim, kuyrugun
+   * farkedilmesini garanti eder.
+   *
+   * Davayi acan kisi yonetici ise kendisine bildirim gitmez.
+   */
+  async topicPendingReview(topicId: string, topicTitle: string, creatorId: string) {
+    try {
+      const staff = await this.prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'MODERATOR'] }, isBanned: false },
+        select: { id: true },
+      });
+      await Promise.all(
+        staff
+          .filter((s) => s.id !== creatorId)
+          .map((s) =>
+            this.create({
+              userId: s.id,
+              type: 'topic_pending_review',
+              title: 'Yeni dava onay bekliyor',
+              body: topicTitle,
+              link: '/admin',
+            }),
+          ),
+      );
+    } catch (err) {
+      this.logger.warn(`topicPendingReview bildirimi basarisiz: ${String(err)}`);
+    }
   }
 }

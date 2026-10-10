@@ -97,3 +97,76 @@ describe('TopicsService.withScores - taraf gucu', () => {
     expect(result.sides[0].strengthScore).toBe(60);
   });
 });
+
+/**
+ * Onay beklerken katkı kurallari.
+ *
+ * Bu testler canlida yakalanan bir hatayi koruyor: yeni kullanici dava aciyor,
+ * dava PENDING kaliyor ve sahibi kendi davasina tek bir kanit bile
+ * ekleyemiyordu. Yani kayit olan herkes ilk adimda duvara carpiyordu.
+ */
+function canContribute(
+  topic: { status: string; creatorId: string },
+  userId: string,
+  role: string | undefined,
+  action: 'evidence' | 'comment' = 'evidence',
+) {
+  const service = new TopicsService(
+    {} as never, {} as never, {} as never, {} as never,
+    {} as never, {} as never, {} as never,
+  );
+  const fn = (service as unknown as {
+    assertCanContribute: (t: unknown, u: string, r: string | undefined, a: string) => void;
+  }).assertCanContribute.bind(service);
+  try {
+    fn(topic, userId, role, action);
+    return { allowed: true, message: null as string | null };
+  } catch (err) {
+    return { allowed: false, message: (err as Error).message };
+  }
+}
+
+describe('TopicsService.assertCanContribute - onay bekleyen davaya katki', () => {
+  const pending = { status: 'PENDING', creatorId: 'sahip' };
+  const approved = { status: 'APPROVED', creatorId: 'sahip' };
+  const rejected = { status: 'REJECTED', creatorId: 'sahip' };
+
+  it('onayli davaya herkes kanit ekleyebilir', () => {
+    expect(canContribute(approved, 'yabanci', 'USER').allowed).toBe(true);
+  });
+
+  it('onay bekleyen davaya SAHIBI kanit ekleyebilir', () => {
+    expect(canContribute(pending, 'sahip', 'USER').allowed).toBe(true);
+  });
+
+  it('onay bekleyen davaya baskasi kanit EKLEYEMEZ', () => {
+    const res = canContribute(pending, 'yabanci', 'USER');
+    expect(res.allowed).toBe(false);
+    expect(res.message).toContain('henuz onaylanmadi');
+  });
+
+  it('onay bekleyen davaya ADMIN kanit ekleyebilir', () => {
+    expect(canContribute(pending, 'yonetici', 'ADMIN').allowed).toBe(true);
+  });
+
+  it('onay bekleyen davaya MODERATOR kanit ekleyebilir', () => {
+    expect(canContribute(pending, 'moderator', 'MODERATOR').allowed).toBe(true);
+  });
+
+  it('reddedilen davaya SAHIBI DAHI kanit ekleyemez', () => {
+    const res = canContribute(rejected, 'sahip', 'USER');
+    expect(res.allowed).toBe(false);
+    expect(res.message).toContain('reddedildigi');
+  });
+
+  it('reddedilen davaya ADMIN dahi kanit ekleyemez', () => {
+    expect(canContribute(rejected, 'yonetici', 'ADMIN').allowed).toBe(false);
+  });
+
+  it('ayni kurallar yorum icin de gecerli', () => {
+    expect(canContribute(pending, 'sahip', 'USER', 'comment').allowed).toBe(true);
+    const res = canContribute(pending, 'yabanci', 'USER', 'comment');
+    expect(res.allowed).toBe(false);
+    expect(res.message).toContain('yorum yapabilir');
+  });
+});

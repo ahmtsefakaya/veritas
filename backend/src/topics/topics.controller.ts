@@ -122,10 +122,10 @@ export class TopicsController {
   @Post(':id/comments')
   addComment(
     @Param('id') id: string,
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string; role?: string },
     @Body() dto: CreateCommentDto,
   ) {
-    return this.topicsService.addComment(id, user.id, dto);
+    return this.topicsService.addComment(id, user.id, dto, user.role);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -148,9 +148,9 @@ export class TopicsController {
   @Post('sides/:sideId/evidences')
   addEvidence(
     @Param('sideId') sideId: string,
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string; role?: string },
     @Body() dto: CreateEvidenceDto,
   ) {
-    return this.topicsService.addEvidence(sideId, user.id, dto);
+    return this.topicsService.addEvidence(sideId, user.id, dto, user.role);
   }
 }

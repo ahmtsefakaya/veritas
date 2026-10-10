@@ -32,7 +32,7 @@ export class TopicsService {
 
   async create(creatorId: string, dto: CreateTopicDto) {
     await this.quota.assertWithinQuota(creatorId, 'topics');
-    return this.prisma.topic.create({
+    const topic = await this.prisma.topic.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -47,6 +47,10 @@ export class TopicsService {
       },
       include: { sides: true },
     });
+
+    await this.notifications.topicPendingReview(topic.id, topic.title, creatorId);
+
+    return topic;
   }
 
   /**
@@ -327,7 +331,47 @@ export class TopicsService {
     return roots;
   }
 
-  async addComment(topicId: string, authorId: string, dto: CreateCommentDto) {
+  /**
+   * Onay beklerken dava sahibi kendi dosyasini kurabilir.
+   *
+   * Neden: eskiden tum PENDING konular kanit eklemeye kapaliydi. Sonuc olarak
+   * yeni kullanici kaydolup dava aciyor, sonra kendi davasina tek bir kanit
+   * bile ekleyemiyordu - moderator onaylayana kadar akis tamamen tikaniyordu.
+   * Boylece moderator de bos bir dava inceliyordu.
+   *
+   * Yeni kural: APPROVED ise herkese acik. PENDING ise yalnizca sahibi (ve
+   * yonetim) ekleyebilir; dava herkese hala ancak onaydan sonra gorunur.
+   * REJECTED her durumda kapali.
+   */
+  private assertCanContribute(
+    topic: { status: string; creatorId: string },
+    userId: string,
+    userRole: string | undefined,
+    action: 'evidence' | 'comment',
+  ) {
+    if (topic.status === 'APPROVED') return;
+
+    const isStaff = userRole === 'ADMIN' || userRole === 'MODERATOR';
+    const isOwner = topic.creatorId === userId;
+
+    if (topic.status === 'PENDING' && (isOwner || isStaff)) return;
+
+    if (topic.status === 'REJECTED') {
+      throw new BadRequestException(
+        action === 'evidence'
+          ? 'Bu dava reddedildigi icin delil eklenemez.'
+          : 'Bu dava reddedildigi icin yorum yapilamaz.',
+      );
+    }
+
+    throw new BadRequestException(
+      action === 'evidence'
+        ? 'Bu dava henuz onaylanmadi. Onaylanana kadar yalnizca davayi acan kisi delil ekleyebilir.'
+        : 'Bu dava henuz onaylanmadi. Onaylanana kadar yalnizca davayi acan kisi yorum yapabilir.',
+    );
+  }
+
+  async addComment(topicId: string, authorId: string, dto: CreateCommentDto, authorRole?: string) {
     const topic = await this.prisma.topic.findUnique({
       where: { id: topicId },
       select: { id: true, status: true, title: true, creatorId: true },
@@ -335,9 +379,7 @@ export class TopicsService {
     if (!topic) {
       throw new NotFoundException('Konu bulunamadi.');
     }
-    if (topic.status !== 'APPROVED') {
-      throw new BadRequestException('Bu konu henuz onaylanmadigi icin yorum yapilamaz.');
-    }
+    this.assertCanContribute(topic, authorId, authorRole, 'comment');
 
     let parentAuthorId: string | null = null;
     await this.quota.assertWithinQuota(authorId, 'comments');
@@ -468,7 +510,7 @@ export class TopicsService {
     return updated;
   }
 
-  async addEvidence(sideId: string, authorId: string, dto: CreateEvidenceDto) {
+  async addEvidence(sideId: string, authorId: string, dto: CreateEvidenceDto, authorRole?: string) {
     const side = await this.prisma.side.findUnique({
       where: { id: sideId },
       include: { topic: true },
@@ -478,9 +520,7 @@ export class TopicsService {
       throw new NotFoundException('Taraf bulunamadi.');
     }
 
-    if (side.topic.status !== 'APPROVED') {
-      throw new BadRequestException('Bu konu henuz onaylanmadigi icin delil eklenemez.');
-    }
+    this.assertCanContribute(side.topic, authorId, authorRole, 'evidence');
 
     await this.quota.assertWithinQuota(authorId, 'evidences');
 

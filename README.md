@@ -51,7 +51,15 @@ puanı uygulama içi puandır, para değildir — gerçek para dağıtımı yap�
 - [x] Hesap ayarlari, itibar sıralaması sayfası, 404 sayfası ve SEO meta etiketleri
 - [x] E-posta doğrulama ve şifre sıfırlama (tek kullanımlık jeton, SHA-256 özet)
 - [x] Bilgi sayfaları (nasıl çalışır, kurallar, gizlilik, kullanım şartları), ortak footer, robots.txt + sitemap.xml
-- [ ] Mobil uygulama (React Native / Expo)
+- [x] Mobil uygulama (React Native / Expo) + EAS yapılandırması (`docs/mobil-apk.md`)
+- [x] Sorgu performansı: indeksler ve ölçümler (`docs/performans.md`)
+- [x] Yedekleme / geri yükleme (`scripts/backup-db.sh`, `docs/yedekleme.md`)
+- [x] Canlı uçtan uca yolculuk testi (`backend/test/live-journey.mjs`, 34 kontrol)
+- [x] Erişilebilirlik ve mobil uyum (form alan adları, 44px dokunma alanı, rota başına `<title>`)
+
+QA hesapları: `test/live-journey.mjs` canlıya gerçek bir kullanıcı yazmak
+zorunda. Bu hesaplar `veritas-test.local` alan adını kullanır ve halka açık
+lider tablosundan hariç tutulur (`QA_EMAIL_DOMAINS` ile değiştirilebilir).
 
 ## Hesap kurtarma akışları
 

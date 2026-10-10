@@ -82,12 +82,18 @@ export class TopicsService {
       const evidences = side.evidences ?? [];
       const scored = evidences.filter((e) => typeof e.score === 'number');
       const totalScore = scored.reduce((sum, e) => sum + (e.score as number), 0);
-      const strengthScore = scored.length
-        ? Math.round(
-            (totalScore + TopicsService.PRIOR_WEIGHT * TopicsService.PRIOR_SCORE) /
-              (scored.length + TopicsService.PRIOR_WEIGHT),
-          )
-        : null;
+
+      /**
+       * Guc, kanit yokken de tanimlidir: on bilgi tek basina notr 50 verir.
+       * Eskiden null donuyordu ve arayuzde kanitsiz taraf bos gorunuyordu;
+       * oysa "henuz kanit yok, notr" bilgisi kullaniciya bos kutudan daha
+       * fazlasini anlatir. Ortalama ise kanit yoksa gercekten tanimsizdir,
+       * o null kalir.
+       */
+      const strengthScore = Math.round(
+        (totalScore + TopicsService.PRIOR_WEIGHT * TopicsService.PRIOR_SCORE) /
+          (scored.length + TopicsService.PRIOR_WEIGHT),
+      );
 
       return {
         ...side,

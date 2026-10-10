@@ -76,7 +76,9 @@ describe('TopicsService.withScores - taraf gucu', () => {
 
     expect(result.leadingSideId).toBeNull();
     expect(result.isTie).toBe(false);
-    expect(result.sides[0].strengthScore).toBeNull();
+    // puanlanmamis kanit kalite bilgisi tasimaz: taraf notr 50'de durur
+    expect(result.sides[0].strengthScore).toBe(50);
+    expect(result.sides[0].averageScore).toBeNull();
   });
 
   it('esit gucte beraberlik ilan edilir', () => {
@@ -168,5 +170,31 @@ describe('TopicsService.assertCanContribute - onay bekleyen davaya katki', () =>
     const res = canContribute(pending, 'yabanci', 'USER', 'comment');
     expect(res.allowed).toBe(false);
     expect(res.message).toContain('yorum yapabilir');
+  });
+});
+
+describe('TopicsService.withScores - kanitsiz taraf', () => {
+  it('kanitsiz taraf notr 50 gosterir, bos degil', () => {
+    const result = scoreSides([
+      { id: 'A', scores: [90] },
+      { id: 'B', scores: [] },
+    ]);
+
+    expect(result.sides[1].strengthScore).toBe(50);
+    expect(result.sides[1].averageScore).toBeNull();
+    expect(result.sides[1].evidenceCount).toBe(0);
+    expect(result.leadingSideId).toBe('A');
+  });
+
+  it('iki taraf da kanitsizsa beraberlik ilan edilmez', () => {
+    const result = scoreSides([
+      { id: 'A', scores: [] },
+      { id: 'B', scores: [] },
+    ]);
+
+    expect(result.sides[0].strengthScore).toBe(50);
+    expect(result.sides[1].strengthScore).toBe(50);
+    expect(result.isTie).toBe(false);
+    expect(result.leadingSideId).toBeNull();
   });
 });

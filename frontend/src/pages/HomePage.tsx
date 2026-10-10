@@ -215,7 +215,7 @@ export default function HomePage() {
               {user && <NotificationBell />}
               <Link
                 to="/new-topic"
-                className="font-mono text-xs px-3 py-2 rounded-sm bg-brass text-ink"
+                className="font-mono text-xs px-3 py-2 min-h-[44px] inline-flex items-center rounded-sm bg-brass text-ink"
               >
                 + dava
               </Link>
@@ -223,19 +223,19 @@ export default function HomePage() {
           </div>
 
           <nav className="mt-3 flex items-center gap-4 flex-wrap">
-            <Link to="/leaderboard" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+            <Link to="/leaderboard" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
               siralama
             </Link>
-            <Link to="/rewards" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+            <Link to="/rewards" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
               odul
             </Link>
             {user && (
-              <Link to="/settings" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+              <Link to="/settings" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
                 ayarlar
               </Link>
             )}
             {(user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
-              <Link to="/admin" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+              <Link to="/admin" className="font-mono text-xs py-2 min-h-[44px] inline-flex items-center text-parchment-dim hover:text-brass transition-colors">
                 moderasyon
               </Link>
             )}
@@ -262,11 +262,11 @@ export default function HomePage() {
               aria-label="Dava ara"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="flex-1 px-3 py-1.5 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
+              className="flex-1 min-h-[44px] px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
             />
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-sm border border-line font-mono text-xs text-parchment-dim hover:text-brass hover:border-brass transition-colors"
+              className="px-3 min-h-[44px] rounded-sm border border-line font-mono text-xs text-parchment-dim hover:text-brass hover:border-brass transition-colors"
             >
               ara
             </button>
@@ -282,7 +282,7 @@ export default function HomePage() {
                   setPage(1);
                   setSort(s.key);
                 }}
-                className={`font-mono text-xs py-1.5 transition-colors ${
+                className={`font-mono text-xs min-h-[44px] px-2 inline-flex items-center transition-colors ${
                   sort === s.key ? 'text-brass' : 'text-parchment-dim hover:text-parchment'
                 }`}
               >
@@ -306,7 +306,7 @@ export default function HomePage() {
                   type="button"
                   onClick={() => pickCategory('')}
                   aria-pressed={category === ''}
-                  className={`font-mono text-xs px-3 py-1.5 rounded-sm border transition-colors ${
+                  className={`font-mono text-xs min-h-[44px] px-3 rounded-sm border inline-flex items-center transition-colors ${
                     category === ''
                       ? 'text-brass border-brass'
                       : 'text-parchment-dim border-line hover:text-parchment'
@@ -320,7 +320,7 @@ export default function HomePage() {
                     type="button"
                     onClick={() => pickCategory(c.category)}
                     aria-pressed={category === c.category}
-                    className={`font-mono text-xs px-3 py-1.5 rounded-sm border transition-colors ${
+                    className={`font-mono text-xs min-h-[44px] px-3 rounded-sm border inline-flex items-center transition-colors ${
                       category === c.category
                         ? 'text-brass border-brass'
                         : 'text-parchment-dim border-line hover:text-parchment'

@@ -10,6 +10,11 @@ function buildService(overrides: Record<string, unknown> = {}) {
       updateMany: vi.fn().mockResolvedValue({ count: 2 }),
       ...(overrides.notification as object),
     },
+    user: {
+      findUnique: vi.fn().mockResolvedValue({ email: 'gercek@ornek.com' }),
+      findMany: vi.fn().mockResolvedValue([{ id: 'admin1' }, { id: 'creator' }]),
+      ...(overrides.user as object),
+    },
   };
   return { service: new NotificationsService(prisma as never), prisma };
 }
@@ -94,5 +99,25 @@ describe('NotificationsService', () => {
     const data = prisma.notification.create.mock.calls[0][0].data;
     expect(data.title).toContain('reddedildi');
     expect(data.link).toBeNull();
+  });
+
+  it('gercek kullanicinin davasi yoneticilere bildirilir, kurucunun kendisine gitmez', async () => {
+    const { service, prisma } = buildService();
+    await service.topicPendingReview('t1', 'Baslik', 'creator');
+
+    expect(prisma.notification.create).toHaveBeenCalledTimes(1);
+    const data = prisma.notification.create.mock.calls[0][0].data;
+    expect(data.userId).toBe('admin1');
+    expect(data.type).toBe('topic_pending_review');
+  });
+
+  it('QA hesabinin actigi dava moderasyon bildirimi uretmez', async () => {
+    const { service, prisma } = buildService({
+      user: { findUnique: vi.fn().mockResolvedValue({ email: 'e2e.1@veritas-test.local' }) },
+    });
+    await service.topicPendingReview('t1', 'Baslik', 'qa-user');
+
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
   });
 });

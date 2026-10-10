@@ -37,3 +37,19 @@ export function excludeQaAccountsFilter(): Array<{
     email: { not: { endsWith: `@${domain}` } },
   }));
 }
+
+/**
+ * Prisma `where` parcasi: QA hesaplarinin ACTIGI kayitlari disla.
+ *
+ * Neden gerekli: canli yolculuk testi her kosusunda gercek bir PENDING dava
+ * aciyor. Bunlar halka gorunmuyor ama moderasyon kuyruguna dusuyor; kuyruk
+ * zamanla yalnizca QA artigiyla doluyor ve gercek bir dava geldiginde
+ * farkedilmiyor. Kuyrugu temiz tutmak, kuyrugun ise yaramasinin sarti.
+ */
+export function excludeQaCreatorsFilter(): Array<{
+  creator: { email: { not: { endsWith: string } } };
+}> {
+  return qaEmailDomains().map((domain) => ({
+    creator: { email: { not: { endsWith: `@${domain}` } } },
+  }));
+}

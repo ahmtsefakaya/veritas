@@ -10,6 +10,7 @@ import { EvidenceScoringService } from '../evidence-scoring/evidence-scoring.ser
 import { ReputationService } from '../users/reputation.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { QuotaService } from '../common/quota.service';
+import { excludeQaCreatorsFilter } from '../common/qa-accounts';
 import { EvidenceReportsService } from './evidence-reports.service';
 import { TopicsGateway } from './topics.gateway';
 import { CreateTopicDto } from './dto/create-topic.dto';
@@ -205,7 +206,7 @@ export class TopicsService {
 
   async findPending() {
     return this.prisma.topic.findMany({
-      where: { status: 'PENDING' },
+      where: { status: 'PENDING', AND: excludeQaCreatorsFilter() },
       include: { sides: true, creator: { select: { username: true } } },
       orderBy: { createdAt: 'asc' },
     });

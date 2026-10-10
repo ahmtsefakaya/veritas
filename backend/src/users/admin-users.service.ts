@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { excludeQaCreatorsFilter } from '../common/qa-accounts';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 
 /**
@@ -148,7 +149,9 @@ export class AdminUsersService {
         where: { createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
       }),
       this.prisma.topic.count(),
-      this.prisma.topic.count({ where: { status: 'PENDING' } }),
+      this.prisma.topic.count({
+        where: { status: 'PENDING', AND: excludeQaCreatorsFilter() },
+      }),
       this.prisma.evidence.count(),
       this.prisma.evidence.aggregate({
         where: { score: { not: null } },

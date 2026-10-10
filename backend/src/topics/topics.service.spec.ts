@@ -297,3 +297,33 @@ describe('TopicsService.findApproved - yorum sayimi sayfayla sinirli', () => {
     expect(res.items[0].leadingSideId).toBe('t1-A');
   });
 });
+
+/**
+ * Moderasyon kuyrugu QA artigindan arinmis olmali.
+ *
+ * Canli yolculuk testi her kosusunda uretime PENDING bir dava yaziyor. Bu
+ * davalar kuyrukta birikirse Ahmet gercek bir basvuruyu gurultunun icinde
+ * kaciriyor; filtre sessizce kalkmasin diye burada sabitlendi.
+ */
+describe('TopicsService.findPending - QA davalari kuyruga girmez', () => {
+  it('PENDING sorgusu QA kurucularini dislar', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const service = new TopicsService(
+      { topic: { findMany } } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await service.findPending();
+
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.status).toBe('PENDING');
+    expect(where.AND).toEqual([
+      { creator: { email: { not: { endsWith: '@veritas-test.local' } } } },
+    ]);
+  });
+});

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isQaEmail } from '../common/qa-accounts';
 
 export type NotificationType =
   | 'evidence_scored'
@@ -143,9 +144,19 @@ export class NotificationsService {
    * farkedilmesini garanti eder.
    *
    * Davayi acan kisi yonetici ise kendisine bildirim gitmez.
+   *
+   * QA hesaplarinin (canli yolculuk testi) actigi davalar icin hic bildirim
+   * uretilmez: aksi halde her test kosusu Ahmet'in bildirim ziline bir satir
+   * daha ekliyor ve gercek bir dava bildirimi bu gurultunun icinde kayboluyor.
    */
   async topicPendingReview(topicId: string, topicTitle: string, creatorId: string) {
     try {
+      const creator = await this.prisma.user.findUnique({
+        where: { id: creatorId },
+        select: { email: true },
+      });
+      if (isQaEmail(creator?.email)) return;
+
       const staff = await this.prisma.user.findMany({
         where: { role: { in: ['ADMIN', 'MODERATOR'] }, isBanned: false },
         select: { id: true },

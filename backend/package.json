@@ -19,6 +19,9 @@
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "perf:seed": "docker cp test/perf-seed.sql vdb:/tmp/perf-seed.sql && docker exec vdb psql -U postgres -d veritas -f /tmp/perf-seed.sql && docker exec vdb psql -U postgres -d veritas -c \"ANALYZE;\"",
+    "perf:measure": "node test/perf-measure.mjs",
+    "perf:explain": "docker cp test/perf-explain.sql vdb:/tmp/perf-explain.sql && docker exec vdb psql -U postgres -d veritas -f /tmp/perf-explain.sql",
     "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {

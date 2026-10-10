@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { TopicsService } from './topics.service';
 
 /**
@@ -196,5 +196,104 @@ describe('TopicsService.withScores - kanitsiz taraf', () => {
     expect(result.sides[1].strengthScore).toBe(50);
     expect(result.isTie).toBe(false);
     expect(result.leadingSideId).toBeNull();
+  });
+});
+
+/**
+ * findApproved'daki yorum sayimi, Prisma'nin `_count: { comments: true }`
+ * secimiyle yapiliyordu. O secim listeye WHERE'siz bir
+ * "GROUP BY topicId" alt sorgusu ekliyor, yani her istekte TUM yorum
+ * tablosunu tariyordu (EXPLAIN ANALYZE: 12.692 satirda Seq Scan).
+ *
+ * Sayim artik yalnizca donen sayfanin dava id'leriyle sinirli ayri bir
+ * groupBy ile yapiliyor. Bu testler iki seyi birlikte korur:
+ *   1) sayilar dogru eslesiyor (davranis degismedi),
+ *   2) sorgu gercekten sayfayla SINIRLI (performans kazanci geri gelmesin).
+ */
+describe('TopicsService.findApproved - yorum sayimi sayfayla sinirli', () => {
+  function makeService(topics: any[], commentGroups: any[]) {
+    const calls: any = {};
+    const prisma = {
+      topic: {
+        count: vi.fn().mockResolvedValue(topics.length),
+        findMany: vi.fn().mockImplementation((args: any) => {
+          calls.findMany = args;
+          return Promise.resolve(topics);
+        }),
+      },
+      comment: {
+        groupBy: vi.fn().mockImplementation((args: any) => {
+          calls.groupBy = args;
+          return Promise.resolve(commentGroups);
+        }),
+      },
+    };
+    const service = new TopicsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    return { service, prisma, calls };
+  }
+
+  const topicRow = (id: string) => ({
+    id,
+    title: id,
+    sides: [
+      { id: `${id}-A`, position: 'A', label: 'A', evidences: [{ score: 80 }] },
+      { id: `${id}-B`, position: 'B', label: 'B', evidences: [] },
+    ],
+  });
+
+  it('her davaya kendi yorum sayisini verir, eslesmeyene 0', async () => {
+    const { service } = makeService(
+      [topicRow('t1'), topicRow('t2'), topicRow('t3')],
+      [
+        { topicId: 't1', _count: { _all: 4 } },
+        { topicId: 't3', _count: { _all: 1 } },
+      ],
+    );
+
+    const res = await service.findApproved({ page: 1, limit: 10 });
+
+    expect(res.items.map((i: any) => [i.id, i.commentCount])).toEqual([
+      ['t1', 4],
+      ['t2', 0],
+      ['t3', 1],
+    ]);
+  });
+
+  it('groupBy YALNIZCA donen sayfanin dava id\'leriyle sinirlidir', async () => {
+    const { service, calls } = makeService([topicRow('t1'), topicRow('t2')], []);
+
+    await service.findApproved({ page: 1, limit: 10 });
+
+    // Sinirsiz bir sayim performans hatasinin geri gelmesi demektir.
+    expect(calls.groupBy.where).toEqual({ topicId: { in: ['t1', 't2'] } });
+    // Pahali `_count` include'u geri gelmemeli.
+    expect(calls.findMany.include._count).toBeUndefined();
+  });
+
+  it('dava yoksa yorum sorgusu hic atilmaz', async () => {
+    const { service, prisma } = makeService([], []);
+
+    const res = await service.findApproved({ page: 1, limit: 10 });
+
+    expect(res.items).toEqual([]);
+    expect(prisma.comment.groupBy).not.toHaveBeenCalled();
+  });
+
+  it('taraf gucu ve yorum sayisi birlikte dondurulur', async () => {
+    const { service } = makeService([topicRow('t1')], [{ topicId: 't1', _count: { _all: 2 } }]);
+
+    const res = await service.findApproved({ page: 1, limit: 10 });
+
+    expect(res.items[0].commentCount).toBe(2);
+    expect(res.items[0].sides[0].strengthScore).toBe(60); // (80 + 100) / 3
+    expect(res.items[0].leadingSideId).toBe('t1-A');
   });
 });

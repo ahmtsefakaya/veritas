@@ -147,7 +147,6 @@ export class TopicsService {
         where,
         include: {
           sides: { include: { evidences: { select: { score: true } } } },
-          _count: { select: { comments: true } },
         },
         orderBy,
         skip: (page - 1) * limit,
@@ -155,11 +154,37 @@ export class TopicsService {
       }),
     ]);
 
+    /**
+     * Yorum sayisi NEDEN ayri sorgu?
+     *
+     * Prisma'nin `_count: { comments: true }` secimi, listeye LEFT JOIN ile
+     * "SELECT topicId, COUNT(*) FROM comments GROUP BY topicId" alt sorgusu
+     * ekliyordu. Bu alt sorguda WHERE yok: her /topics istegi, yalnizca 10
+     * dava donmesine ragmen TUM yorum tablosunu tariyor ve grupluyordu.
+     * EXPLAIN ANALYZE bunu dogruladi: 12.692 yorumda "Seq Scan on comments"
+     * + HashAggregate, tek istegin maliyetinin yarisindan fazlasi.
+     *
+     * Maliyet yorum sayisiyla dogrusal buyudugu icin bu, urun buyudukce
+     * listeyi yavaslatan asil sebepti. Sayimi yalnizca donen sayfanin dava
+     * id'leriyle sinirliyoruz: maliyet artik toplam yorum sayisindan bagimsiz,
+     * yalnizca o 10 davanin yorumlariyla ilgili.
+     */
+    const commentCounts = topics.length
+      ? await this.prisma.comment.groupBy({
+          by: ['topicId'],
+          where: { topicId: { in: topics.map((t) => t.id) } },
+          _count: { _all: true },
+        })
+      : [];
+    const commentCountByTopic = new Map(
+      commentCounts.map((row) => [row.topicId, row._count._all]),
+    );
+
     return {
-      items: topics.map((topic: any) => {
-        const { _count, ...rest } = topic;
-        return { ...this.withScores(rest), commentCount: _count?.comments ?? 0 };
-      }),
+      items: topics.map((topic: any) => ({
+        ...this.withScores(topic),
+        commentCount: commentCountByTopic.get(topic.id) ?? 0,
+      })),
       page,
       limit,
       total,

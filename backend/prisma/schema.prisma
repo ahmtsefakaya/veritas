@@ -1,10 +1,15 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pg_trgm, ILIKE '%...%' aramalarinin indeksten faydalanmasi icin gerekli.
+  // Btree bir indeks ortadaki joker karakterli ILIKE'i kullanamaz; GIN + trgm
+  // kullanabilir. Arama /topics listesinin en pahali durumuydu.
+  extensions = [pg_trgm]
 }
 
 enum UserRole {
@@ -140,6 +145,17 @@ model Topic {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  // Liste sorgusu daima status'e gore filtreler ve createdAt/updatedAt'e gore
+  // siralar. Bu bilesik indeksler hem filtreyi hem siralamayi karsilar, boylece
+  // 4000+ satirin seq scan + sort maliyeti ortadan kalkar.
+  @@index([status, createdAt])
+  @@index([status, updatedAt])
+  // Kategori filtresi (buyuk/kucuk harf duyarsiz esitlik) icin trgm; btree
+  // ILIKE'i kullanamazdi.
+  @@index([category(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([creatorId])
   @@map("topics")
 }
 
@@ -171,6 +187,8 @@ model Side {
   evidences Evidence[]
 
   @@unique([topicId, position])
+  // Arama, taraf etiketinde de ILIKE '%...%' yapiyor ve 10.000 satiri tariyordu.
+  @@index([label(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("sides")
 }
 
@@ -190,6 +208,14 @@ model Evidence {
   votes EvidenceVote[]
   reports EvidenceReport[]
 
+  // EN KRITIK INDEKS: /topics listesi her istekte ic ice kanitlari
+  // "WHERE sideId IN (...)" ile cekiyordu ve indeks olmadigi icin 45.000
+  // satirlik tabloyu bastan sona tariyordu (seq scan, ~400 ms).
+  // (sideId, score) bilesik olmasi dava detayindaki "score desc" siralamasini
+  // da karsilar.
+  @@index([sideId, score])
+  // Profil/itibar sorgulari kanitlari yazara gore topluyor.
+  @@index([authorId])
   @@map("evidences")
 }
 

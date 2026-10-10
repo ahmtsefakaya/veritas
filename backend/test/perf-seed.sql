@@ -2,6 +2,20 @@
 -- Amaci: /topics listesinin ic ice kanitlarla buyudukce nasil davrandigini
 -- gercek veri hacminde olcmek. ASLA canli veritabaninda calistirilmaz.
 
+-- Tekrar kosulabilsin: onceki olcum tohumunu yerelde temizle.
+-- ASLA canli veritabaninda calistirilmaz (dosyanin ustundeki uyari).
+DELETE FROM evidences WHERE "sideId" IN (
+  SELECT s.id FROM sides s JOIN topics t ON t.id = s."topicId"
+  WHERE t.title LIKE 'Perf dava %'
+);
+DELETE FROM comments WHERE "topicId" IN (
+  SELECT id FROM topics WHERE title LIKE 'Perf dava %'
+);
+DELETE FROM sides WHERE "topicId" IN (
+  SELECT id FROM topics WHERE title LIKE 'Perf dava %'
+);
+DELETE FROM topics WHERE title LIKE 'Perf dava %';
+
 -- 1 seed kullanicisi (var olan bir kullaniciyi yeniden kullanir)
 CREATE TEMP TABLE seed_user AS SELECT id FROM users LIMIT 1;
 

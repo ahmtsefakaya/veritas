@@ -63,6 +63,8 @@ export default function ResetPasswordPage() {
               <input
                 type="password"
                 placeholder="Yeni sifre"
+                aria-label="Yeni sifre"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -71,6 +73,8 @@ export default function ResetPasswordPage() {
               <input
                 type="password"
                 placeholder="Yeni sifre (tekrar)"
+                aria-label="Yeni sifre (tekrar)"
+                autoComplete="new-password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required

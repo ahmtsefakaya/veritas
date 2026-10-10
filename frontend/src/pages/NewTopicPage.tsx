@@ -50,6 +50,7 @@ export default function NewTopicPage() {
           <input
             type="text"
             placeholder="Dava basligi"
+            aria-label="Dava basligi"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -57,6 +58,7 @@ export default function NewTopicPage() {
           />
           <textarea
             placeholder="Dava aciklamasi"
+            aria-label="Dava aciklamasi"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
@@ -66,6 +68,7 @@ export default function NewTopicPage() {
           <input
             type="text"
             placeholder="Kategori (orn: teknoloji, siyaset, felsefe)"
+            aria-label="Kategori"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             required
@@ -75,6 +78,7 @@ export default function NewTopicPage() {
             <input
               type="text"
               placeholder="A tarafi"
+              aria-label="A tarafinin adi"
               value={sideALabel}
               onChange={(e) => setSideALabel(e.target.value)}
               required
@@ -83,6 +87,7 @@ export default function NewTopicPage() {
             <input
               type="text"
               placeholder="B tarafi"
+              aria-label="B tarafinin adi"
               value={sideBLabel}
               onChange={(e) => setSideBLabel(e.target.value)}
               required

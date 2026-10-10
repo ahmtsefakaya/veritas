@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 
@@ -10,6 +11,7 @@ interface Leader {
 }
 
 export default function LeaderboardPage() {
+  useDocumentTitle('Itibar siralamasi');
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -47,6 +48,7 @@ const SORTS = [
 ] as const;
 
 export default function HomePage() {
+  useDocumentTitle('Gundem');
   const [data, setData] = useState<TopicPage | null>(null);
   const [categories, setCategories] = useState<CategoryCount[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  useDocumentTitle(mode === 'login' ? 'Giris yap' : 'Kayit ol');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -46,6 +48,8 @@ export default function AuthPage() {
             <input
               type="email"
               placeholder="E-posta"
+              aria-label="E-posta"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -57,6 +61,8 @@ export default function AuthPage() {
                 <input
                   type="text"
                   placeholder="Kullanici adi"
+                  aria-label="Kullanici adi"
+                  autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
@@ -65,6 +71,8 @@ export default function AuthPage() {
                 <input
                   type="text"
                   placeholder="Goruntulenecek isim"
+                  aria-label="Goruntulenecek isim"
+                  autoComplete="nickname"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
@@ -75,6 +83,8 @@ export default function AuthPage() {
             <input
               type="password"
               placeholder="Sifre"
+              aria-label="Sifre"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

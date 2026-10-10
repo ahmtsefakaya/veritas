@@ -64,6 +64,7 @@ function CommentForm({
     <form onSubmit={handle} className="space-y-2">
       <textarea
         placeholder={placeholder}
+        aria-label={placeholder}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         required

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function NotFoundPage() {
+  useDocumentTitle('Sayfa bulunamadi');
   return (
     <div className="min-h-screen bg-ink text-parchment flex items-center justify-center px-6">
       <div className="text-center">

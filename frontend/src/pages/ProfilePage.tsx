@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link, useParams } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 
@@ -40,6 +41,7 @@ interface Leader {
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
+  useDocumentTitle(username ? `@${username}` : null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);

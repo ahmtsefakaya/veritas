@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +26,7 @@ function formatValue(value: number | string | boolean | null) {
 }
 
 export default function RewardsPage() {
+  useDocumentTitle('Odul programi');
   const { accessToken } = useAuth();
   const [data, setData] = useState<Eligibility | null>(null);
   const [error, setError] = useState('');

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest, API_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -90,7 +91,9 @@ function VoteButtons({ evidence }: { evidence: Evidence }) {
         onClick={() => cast(1)}
         disabled={!user || isOwn || busy}
         title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Katiliyorum'}
-        className={`font-mono text-xs px-2 py-0.5 rounded-sm border transition-colors disabled:opacity-40 ${
+        aria-label="Katiliyorum"
+        aria-pressed={myVote === 1}
+        className={`font-mono text-xs min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-sm border transition-colors disabled:opacity-40 ${
           myVote === 1 ? 'border-brass text-brass' : 'border-line text-parchment-dim hover:text-parchment'
         }`}
       >
@@ -102,7 +105,9 @@ function VoteButtons({ evidence }: { evidence: Evidence }) {
         onClick={() => cast(-1)}
         disabled={!user || isOwn || busy}
         title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Katilmiyorum'}
-        className={`font-mono text-xs px-2 py-0.5 rounded-sm border transition-colors disabled:opacity-40 ${
+        aria-label="Katilmiyorum"
+        aria-pressed={myVote === -1}
+        className={`font-mono text-xs min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-sm border transition-colors disabled:opacity-40 ${
           myVote === -1 ? 'border-verdict-weak text-verdict-weak' : 'border-line text-parchment-dim hover:text-parchment'
         }`}
       >
@@ -185,6 +190,7 @@ function ReportControl({ evidence, onReported }: { evidence: Evidence; onReporte
           <select
             value={reason}
             onChange={(event) => setReason(event.target.value)}
+            aria-label="Sikayet nedeni"
             className="w-full bg-ink-2 border border-line rounded-sm px-2 py-1 text-sm text-parchment"
           >
             {REPORT_REASONS.map((option) => (
@@ -197,6 +203,7 @@ function ReportControl({ evidence, onReported }: { evidence: Evidence; onReporte
             value={detail}
             onChange={(event) => setDetail(event.target.value)}
             placeholder="Ek aciklama (istege bagli)"
+            aria-label="Sikayet icin ek aciklama"
             maxLength={500}
             rows={2}
             className="w-full mt-2 bg-ink-2 border border-line rounded-sm px-2 py-1 text-sm text-parchment"
@@ -356,6 +363,7 @@ function SideColumn({
         <form onSubmit={handleAdd} className="space-y-2 border-t border-line pt-4">
           <textarea
             placeholder="Kanitini sun..."
+            aria-label="Kanit metni"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             required
@@ -365,6 +373,7 @@ function SideColumn({
           <input
             type="url"
             placeholder="Kaynak linki (opsiyonel)"
+            aria-label="Kaynak linki (opsiyonel)"
             value={sourceUrl}
             onChange={(e) => setSourceUrl(e.target.value)}
             className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
@@ -395,6 +404,7 @@ function SideColumn({
 export default function TopicDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [topic, setTopic] = useState<Topic | null>(null);
+  useDocumentTitle(topic?.title ?? null);
   const [loading, setLoading] = useState(true);
   const { accessToken } = useAuth();
 

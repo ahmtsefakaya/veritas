@@ -368,6 +368,7 @@ export default function AdminPage() {
                 value={userQuery}
                 onChange={(event) => setUserQuery(event.target.value)}
                 placeholder="kullanici adi, e-posta veya isim ara"
+                aria-label="Kullanici ara"
                 className="flex-1 bg-ink-2 border border-line rounded-sm px-3 py-2 text-sm text-parchment placeholder:text-parchment-dim focus:outline-none focus:border-brass"
               />
               <button

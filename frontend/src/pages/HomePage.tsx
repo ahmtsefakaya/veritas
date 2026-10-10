@@ -195,14 +195,61 @@ export default function HomePage() {
       </aside>
 
       <main className="flex-1 max-w-2xl border-r border-line">
-        <header className="border-b border-line px-6 py-4 flex items-center justify-between md:hidden">
-          <h1 className="font-display text-xl text-parchment">Veritas</h1>
-          <Link
-            to="/new-topic"
-            className="font-mono text-xs px-3 py-1.5 rounded-sm bg-brass text-ink"
-          >
-            + dava
-          </Link>
+        {/*
+          Mobil basligin KENDI gezinmesi olmak zorunda.
+
+          Yan sutun `hidden md:flex` oldugu icin 768px altinda tamamen
+          kayboluyordu ve basligta yalnizca "+ dava" vardi. Yani telefondan
+          giren bir kullanici GIRIS YAPAMIYORDU; siralama, odul programi,
+          bildirimler ve cikis da erisilemezdi. Bu yuzden baslik, yan sutunun
+          tasidigi temel baglantilari kucuk ekranda kendisi tasiyor.
+        */}
+        <header className="border-b border-line px-6 py-4 md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="font-display text-xl text-parchment">
+              <Link to="/">Veritas</Link>
+            </h1>
+            <div className="flex items-center gap-3">
+              {user && <NotificationBell />}
+              <Link
+                to="/new-topic"
+                className="font-mono text-xs px-3 py-2 rounded-sm bg-brass text-ink"
+              >
+                + dava
+              </Link>
+            </div>
+          </div>
+
+          <nav className="mt-3 flex items-center gap-4 flex-wrap">
+            <Link to="/leaderboard" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+              siralama
+            </Link>
+            <Link to="/rewards" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+              odul
+            </Link>
+            {user && (
+              <Link to="/settings" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+                ayarlar
+              </Link>
+            )}
+            {(user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
+              <Link to="/admin" className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors">
+                moderasyon
+              </Link>
+            )}
+            {user ? (
+              <button
+                onClick={logout}
+                className="font-mono text-xs py-1 text-parchment-dim hover:text-brass transition-colors ml-auto"
+              >
+                cikis yap
+              </button>
+            ) : (
+              <Link to="/login" className="font-mono text-xs py-1 text-brass hover:text-parchment transition-colors ml-auto">
+                giris yap / kayit ol
+              </Link>
+            )}
+          </nav>
         </header>
 
         <div className="px-6 py-4 border-b border-line space-y-3">
@@ -210,6 +257,7 @@ export default function HomePage() {
             <input
               type="search"
               placeholder="dava ara..."
+              aria-label="Dava ara"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1 px-3 py-1.5 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
@@ -227,11 +275,12 @@ export default function HomePage() {
               <button
                 key={s.key}
                 type="button"
+                aria-pressed={sort === s.key}
                 onClick={() => {
                   setPage(1);
                   setSort(s.key);
                 }}
-                className={`font-mono text-xs transition-colors ${
+                className={`font-mono text-xs py-1.5 transition-colors ${
                   sort === s.key ? 'text-brass' : 'text-parchment-dim hover:text-parchment'
                 }`}
               >
@@ -242,6 +291,45 @@ export default function HomePage() {
               {data ? `${data.total} dava` : ''}
             </span>
           </div>
+
+          {/*
+            Kategoriler de yalnizca yan sutunda duruyordu, yani telefonda
+            kategoriye gore suzme yapilamiyordu. Kucuk ekranda yatay kaydirilan
+            bir satir olarak gosteriliyor.
+          */}
+          {categories.length > 0 && (
+            <div className="md:hidden -mx-6 px-6 overflow-x-auto">
+              <div className="flex gap-2 w-max">
+                <button
+                  type="button"
+                  onClick={() => pickCategory('')}
+                  aria-pressed={category === ''}
+                  className={`font-mono text-xs px-3 py-1.5 rounded-sm border transition-colors ${
+                    category === ''
+                      ? 'text-brass border-brass'
+                      : 'text-parchment-dim border-line hover:text-parchment'
+                  }`}
+                >
+                  tumu
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c.category}
+                    type="button"
+                    onClick={() => pickCategory(c.category)}
+                    aria-pressed={category === c.category}
+                    className={`font-mono text-xs px-3 py-1.5 rounded-sm border transition-colors ${
+                      category === c.category
+                        ? 'text-brass border-brass'
+                        : 'text-parchment-dim border-line hover:text-parchment'
+                    }`}
+                  >
+                    {c.category.toLowerCase()} ({c.count})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {(category || query) && (
             <div className="flex gap-2 flex-wrap">

@@ -11,9 +11,11 @@ const LINKS: { to: string; label: string }[] = [
 export default function Footer() {
   return (
     <footer className="border-t border-line mt-12 px-6 py-6">
-      <nav className="flex flex-wrap gap-x-4 gap-y-2 font-mono text-xs text-parchment-dim">
+      <nav className="flex flex-wrap gap-x-4 font-mono text-xs text-parchment-dim">
         {LINKS.map((link) => (
-          <Link key={link.to} to={link.to} className="hover:text-brass transition-colors">
+          // py-2: dokunma hedefi. Baglantilar 16px yuksekligindeydi ve
+          // telefonda isabet ettirmek zordu.
+          <Link key={link.to} to={link.to} className="py-2 hover:text-brass transition-colors">
             {link.label}
           </Link>
         ))}

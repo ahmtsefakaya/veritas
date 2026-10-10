@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReputationService } from './reputation.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { excludeQaAccountsFilter } from '../common/qa-accounts';
 
 @Injectable()
 export class UsersService {
@@ -64,7 +65,11 @@ export class UsersService {
 
   async leaderboard(limit = 20) {
     return this.prisma.user.findMany({
-      where: { isBanned: false, reputationScore: { gt: 0 } },
+      where: {
+        isBanned: false,
+        reputationScore: { gt: 0 },
+        AND: excludeQaAccountsFilter(),
+      },
       orderBy: { reputationScore: 'desc' },
       take: Math.min(limit, 50),
       select: {

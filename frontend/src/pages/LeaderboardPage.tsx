@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import AppShell, { Avatar } from '../components/AppShell';
+import RightRail from '../components/RightRail';
+import { PageHeader, MobilePageTitle } from '../components/Tabs';
 
 interface Leader {
   username: string;
@@ -12,6 +16,7 @@ interface Leader {
 
 export default function LeaderboardPage() {
   useDocumentTitle('Itibar siralamasi');
+  const { user } = useAuth();
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,60 +29,65 @@ export default function LeaderboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-ink text-parchment">
-      <header className="border-b border-line px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="font-display text-xl text-brass">
-          VERITAS
-        </Link>
-        <nav className="font-mono text-xs text-parchment-dim">itibar siralamasi</nav>
-      </header>
+    <AppShell right={<RightRail />}>
+      <PageHeader title="Siralama" subtitle="itibar puanina gore" />
+      <MobilePageTitle title="Siralama" subtitle="itibar puanina gore" />
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <h1 className="font-display text-3xl text-brass">Itibar Siralamasi</h1>
-        <p className="text-sm text-parchment-dim mt-3 leading-relaxed">
-          Itibar, yapay zekanin kanitlariniza verdigi kalite puanlarindan ve kanitlarinizin net
-          oyundan hesaplanir. Siralama yalnizca pozitif itibari olan kullanicilari gosterir.
+      <p className="border-b border-line px-4 py-4 text-sm leading-relaxed text-parchment-dim sm:px-5">
+        Itibar, yapay zekanin kanitlariniza verdigi kalite puanlarindan ve kanitlarinizin net
+        oyundan hesaplanir. Listede yalnizca pozitif itibari olan kullanicilar yer alir.
+      </p>
+
+      {loading && <p className="px-4 py-10 text-center text-sm text-parchment-dim">yukleniyor...</p>}
+      {error && <p className="px-4 py-10 text-center text-sm text-verdict-weak">{error}</p>}
+
+      {!loading && !error && leaders.length === 0 && (
+        <p className="px-4 py-10 text-center text-sm text-parchment-dim">
+          Henuz siralamaya giren kullanici yok.
         </p>
+      )}
 
-        {loading && <p className="mt-8 font-mono text-xs text-parchment-dim">yukleniyor...</p>}
-        {error && <p className="mt-8 font-mono text-xs text-rust">{error}</p>}
-
-        {!loading && !error && leaders.length === 0 && (
-          <p className="mt-8 font-mono text-xs text-parchment-dim">
-            Henuz siralamaya giren kullanici yok.
-          </p>
-        )}
-
-        {leaders.length > 0 && (
-          <ol className="mt-8 border border-line rounded divide-y divide-line">
-            {leaders.map((leader, index) => (
-              <li key={leader.username}>
-                <Link
-                  to={`/users/${leader.username}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-ink-2 transition-colors"
+      <ol>
+        {leaders.map((leader, index) => {
+          const name = leader.displayName ?? leader.username;
+          const isMe = user?.username === leader.username;
+          return (
+            <li key={leader.username}>
+              <Link
+                to={`/users/${leader.username}`}
+                className={`flex items-center gap-3 border-b border-line px-4 py-3 transition-colors hover:bg-ink-2 sm:px-5 ${
+                  isMe ? 'bg-ink-2' : ''
+                }`}
+              >
+                <span
+                  className={`w-8 shrink-0 font-display text-xl ${
+                    index < 3 ? 'text-brass' : 'text-parchment-dim'
+                  }`}
                 >
-                  <span
-                    className={`font-mono text-xs w-8 ${
-                      index < 3 ? 'text-brass' : 'text-parchment-dim'
-                    }`}
-                  >
-                    #{index + 1}
+                  {index + 1}
+                </span>
+                <Avatar name={name} size={40} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-parchment">{name}</span>
+                    {isMe && (
+                      <span className="rounded-full border border-brass px-1.5 font-mono text-[10px] text-brass">
+                        sen
+                      </span>
+                    )}
                   </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm truncate">
-                      {leader.displayName ?? leader.username}
-                    </span>
-                    <span className="block font-mono text-xs text-parchment-dim truncate">
-                      @{leader.username}
-                    </span>
+                  <span className="block truncate font-mono text-xs text-parchment-dim">
+                    @{leader.username}
                   </span>
-                  <span className="font-mono text-sm text-brass">{leader.reputationScore}</span>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        )}
-      </main>
-    </div>
+                </span>
+                <span className="shrink-0 font-display text-xl text-brass">
+                  {leader.reputationScore}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </AppShell>
   );
 }

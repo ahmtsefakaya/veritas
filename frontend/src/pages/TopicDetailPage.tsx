@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useParams, Link } from 'react-router-dom';
 import { apiRequest, API_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { io, type Socket } from 'socket.io-client';
 import CommentSection from '../components/CommentSection';
+import AppShell, { Avatar } from '../components/AppShell';
+import RightRail from '../components/RightRail';
+import { PageHeader } from '../components/Tabs';
+import Icon from '../components/Icon';
+import { StrengthBar, strengthTone } from '../components/CaseCard';
 
 interface Evidence {
   id: string;
@@ -44,24 +49,44 @@ interface Topic {
   title: string;
   description: string;
   category: string;
+  status?: string;
   sides: Side[];
   leadingSideId: string | null;
   isTie: boolean;
 }
 
-function verdictColor(score: number | null) {
-  if (score === null) return 'text-parchment-dim border-line';
-  if (score >= 70) return 'text-verdict-strong border-verdict-strong';
-  if (score >= 40) return 'text-verdict-mid border-verdict-mid';
-  return 'text-verdict-weak border-verdict-weak';
+function scoreTone(score: number | null) {
+  if (score === null) return 'border-line text-parchment-dim';
+  if (score >= 70) return 'border-verdict-strong text-verdict-strong';
+  if (score >= 40) return 'border-verdict-mid text-verdict-mid';
+  return 'border-verdict-weak text-verdict-weak';
 }
 
-function VoteButtons({ evidence }: { evidence: Evidence }) {
+/** Kalite bileseni: dolum cubugu + deger. Puanin nereden geldigini gorunur kilar. */
+function QualityRow({ label, value, max }: { label: string; value: number; max: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-20 shrink-0 font-mono text-[11px] text-parchment-dim">{label}</span>
+      <span className="h-1 flex-1 overflow-hidden rounded-full bg-ink-4">
+        <span
+          className="block h-full rounded-full bg-brass"
+          style={{ width: `${Math.round((value / max) * 100)}%` }}
+        />
+      </span>
+      <span className="w-10 shrink-0 text-right font-mono text-[11px] text-parchment-dim">
+        {value}/{max}
+      </span>
+    </div>
+  );
+}
+
+function VoteBar({ evidence, onChanged }: { evidence: Evidence; onChanged: () => void }) {
   const { accessToken, user } = useAuth();
   const [myVote, setMyVote] = useState(evidence.myVote);
   const [voteScore, setVoteScore] = useState(evidence.voteScore);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [reportOpen, setReportOpen] = useState(false);
 
   const isOwn = user?.username === evidence.author.username;
 
@@ -85,40 +110,79 @@ function VoteButtons({ evidence }: { evidence: Evidence }) {
   }
 
   return (
-    <div className="flex items-center gap-2 mt-3 border-t border-line pt-2">
-      <button
-        type="button"
-        onClick={() => cast(1)}
-        disabled={!user || isOwn || busy}
-        title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Katiliyorum'}
-        aria-label="Katiliyorum"
-        aria-pressed={myVote === 1}
-        className={`font-mono text-xs min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-sm border transition-colors disabled:opacity-40 ${
-          myVote === 1 ? 'border-brass text-brass' : 'border-line text-parchment-dim hover:text-parchment'
-        }`}
-      >
-        &uarr;
-      </button>
-      <span className="font-mono text-xs text-parchment-dim w-8 text-center">{voteScore}</span>
-      <button
-        type="button"
-        onClick={() => cast(-1)}
-        disabled={!user || isOwn || busy}
-        title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Katilmiyorum'}
-        aria-label="Katilmiyorum"
-        aria-pressed={myVote === -1}
-        className={`font-mono text-xs min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-sm border transition-colors disabled:opacity-40 ${
-          myVote === -1 ? 'border-verdict-weak text-verdict-weak' : 'border-line text-parchment-dim hover:text-parchment'
-        }`}
-      >
-        &darr;
-      </button>
-      {error && <span className="font-mono text-xs text-verdict-weak">{error}</span>}
-    </div>
+    <>
+      <div className="mt-3 flex items-center gap-1 border-t border-line pt-2">
+        <button
+          type="button"
+          onClick={() => cast(1)}
+          disabled={!user || isOwn || busy}
+          title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Ikna edici'}
+          aria-label="Ikna edici"
+          aria-pressed={myVote === 1}
+          className={`flex h-10 min-w-[44px] items-center justify-center gap-1.5 rounded-full px-3 transition-colors disabled:opacity-40 ${
+            myVote === 1 ? 'bg-verdict-strong/15 text-verdict-strong' : 'text-parchment-dim hover:bg-ink-3 hover:text-parchment'
+          }`}
+        >
+          <Icon name="yukari" className="h-4 w-4" />
+          <span className="font-mono text-xs">{voteScore}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => cast(-1)}
+          disabled={!user || isOwn || busy}
+          title={!user ? 'Oy vermek icin giris yap' : isOwn ? 'Kendi kanitina oy veremezsin' : 'Ikna edici degil'}
+          aria-label="Ikna edici degil"
+          aria-pressed={myVote === -1}
+          className={`flex h-10 min-w-[44px] items-center justify-center rounded-full px-3 transition-colors disabled:opacity-40 ${
+            myVote === -1 ? 'bg-verdict-weak/15 text-verdict-weak' : 'text-parchment-dim hover:bg-ink-3 hover:text-parchment'
+          }`}
+        >
+          <Icon name="asagi" className="h-4 w-4" />
+        </button>
+
+        {evidence.sourceUrl && (
+          <a
+            href={evidence.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-10 items-center gap-1.5 rounded-full px-3 text-parchment-dim transition-colors hover:bg-ink-3 hover:text-brass"
+          >
+            <Icon name="paylas" className="h-4 w-4" />
+            <span className="font-mono text-xs">kaynak</span>
+          </a>
+        )}
+
+        {user && !isOwn && (
+          <button
+            type="button"
+            onClick={() => setReportOpen((value) => !value)}
+            className="ml-auto flex h-10 items-center rounded-full px-3 font-mono text-xs text-parchment-dim transition-colors hover:bg-ink-3 hover:text-verdict-weak"
+          >
+            {evidence.myReported ? 'bildirdiniz' : 'bildir'}
+          </button>
+        )}
+        {evidence.reportCount > 0 && (
+          <span className="font-mono text-[11px] text-verdict-weak">
+            {evidence.reportCount} bildirim
+          </span>
+        )}
+      </div>
+
+      {error && <p className="mt-1 font-mono text-xs text-verdict-weak">{error}</p>}
+      {reportOpen && !evidence.myReported && (
+        <ReportForm
+          evidence={evidence}
+          onDone={() => {
+            setReportOpen(false);
+            onChanged();
+          }}
+        />
+      )}
+    </>
   );
 }
 
-const REPORT_REASONS: { value: string; label: string }[] = [
+const REPORT_REASONS = [
   { value: 'FAKE_SOURCE', label: 'Kaynak sahte veya uydurma' },
   { value: 'BROKEN_SOURCE', label: 'Kaynak linki calismiyor' },
   { value: 'MISREPRESENTS_SOURCE', label: 'Kaynagi yanlis aktariyor' },
@@ -127,108 +191,82 @@ const REPORT_REASONS: { value: string; label: string }[] = [
   { value: 'OFF_TOPIC', label: 'Konuyla ilgisiz' },
 ];
 
-function ReportControl({ evidence, onReported }: { evidence: Evidence; onReported: () => void }) {
-  const { user, accessToken } = useAuth();
-  const [open, setOpen] = useState(false);
+function ReportForm({ evidence, onDone }: { evidence: Evidence; onDone: () => void }) {
+  const { accessToken } = useAuth();
   const [reason, setReason] = useState(REPORT_REASONS[0].value);
   const [detail, setDetail] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
-  const isOwn = user?.username === evidence.author.username;
-  if (!user || isOwn) return null;
-
-  const submit = async () => {
-    setBusy(true);
-    setMessage('');
-    try {
-      const result = await apiRequest<{ reviewQueued: boolean }>(
-        `/topics/evidences/${evidence.id}/report`,
-        { method: 'POST', body: { reason, detail: detail || undefined }, token: accessToken },
-      );
-      setMessage(
-        result.reviewQueued
-          ? 'Bildirildi. Kanit yeniden yapay zeka degerlendirmesine alindi.'
-          : 'Bildirildi. Yeterli bildirim toplanirsa kanit yeniden degerlendirilir.',
-      );
-      setOpen(false);
-      onReported();
-    } catch (error) {
-      setMessage((error as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
-    <div className="mt-2">
-      <div className="flex items-center gap-3">
-        {evidence.myReported ? (
-          <span className="font-mono text-xs text-parchment-dim">bildirdiniz</span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setOpen((value) => !value)}
-            className="font-mono text-xs text-parchment-dim hover:text-verdict-weak transition-colors"
-          >
-            kaynagi bildir
-          </button>
-        )}
-        {evidence.reportCount > 0 && (
-          <span className="font-mono text-xs text-verdict-weak">
-            {evidence.reportCount} acik bildirim
-          </span>
-        )}
+    <div className="mt-2 rounded-xl border border-line bg-ink p-3">
+      <p className="mb-2 font-mono text-[11px] leading-relaxed text-parchment-dim">
+        Bildiriminiz puani dogrudan degistirmez; yeterli bildirim toplanirsa kanit yapay zeka
+        tarafindan yeniden degerlendirilir.
+      </p>
+      <label htmlFor={`reason-${evidence.id}`} className="sr-only">
+        Sikayet nedeni
+      </label>
+      <select
+        id={`reason-${evidence.id}`}
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+        className="min-h-[44px] w-full rounded-lg border border-line bg-ink-2 px-2 text-sm text-parchment"
+      >
+        {REPORT_REASONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <label htmlFor={`detail-${evidence.id}`} className="sr-only">
+        Ek aciklama
+      </label>
+      <textarea
+        id={`detail-${evidence.id}`}
+        value={detail}
+        onChange={(event) => setDetail(event.target.value)}
+        placeholder="Ek aciklama (istege bagli)"
+        maxLength={500}
+        rows={2}
+        className="mt-2 w-full rounded-lg border border-line bg-ink-2 px-2 py-1 text-sm text-parchment"
+      />
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const result = await apiRequest<{ reviewQueued: boolean }>(
+                `/topics/evidences/${evidence.id}/report`,
+                { method: 'POST', body: { reason, detail: detail || undefined }, token: accessToken },
+              );
+              setMessage(
+                result.reviewQueued
+                  ? 'Bildirildi. Kanit yeniden degerlendirmeye alindi.'
+                  : 'Bildirildi.',
+              );
+              onDone();
+            } catch (error) {
+              setMessage((error as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="min-h-[40px] rounded-full bg-brass px-4 font-mono text-xs text-ink disabled:opacity-40"
+        >
+          {busy ? 'gonderiliyor...' : 'bildir'}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          className="min-h-[40px] rounded-full border border-line px-4 font-mono text-xs text-parchment-dim"
+        >
+          vazgec
+        </button>
       </div>
-
-      {open && (
-        <div className="mt-2 border border-line rounded-sm p-3 bg-ink">
-          <p className="font-mono text-xs text-parchment-dim mb-2">
-            Bildiriminiz puani dogrudan degistirmez; yeterli bildirim toplanirsa kanit yapay zeka
-            tarafindan yeniden degerlendirilir.
-          </p>
-          <select
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            aria-label="Sikayet nedeni"
-            className="w-full bg-ink-2 border border-line rounded-sm px-2 py-1 text-sm text-parchment"
-          >
-            {REPORT_REASONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <textarea
-            value={detail}
-            onChange={(event) => setDetail(event.target.value)}
-            placeholder="Ek aciklama (istege bagli)"
-            aria-label="Sikayet icin ek aciklama"
-            maxLength={500}
-            rows={2}
-            className="w-full mt-2 bg-ink-2 border border-line rounded-sm px-2 py-1 text-sm text-parchment"
-          />
-          <div className="flex gap-2 mt-2">
-            <button
-              type="button"
-              onClick={submit}
-              disabled={busy}
-              className="font-mono text-xs px-3 py-1 rounded-sm bg-brass text-ink disabled:opacity-40"
-            >
-              {busy ? 'gonderiliyor...' : 'bildir'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="font-mono text-xs px-3 py-1 rounded-sm border border-line text-parchment-dim"
-            >
-              vazgec
-            </button>
-          </div>
-        </div>
-      )}
-
-      {message && <p className="font-mono text-xs text-parchment-dim mt-2">{message}</p>}
+      {message && <p className="mt-2 font-mono text-xs text-parchment-dim">{message}</p>}
     </div>
   );
 }
@@ -242,59 +280,85 @@ function EvidenceCard({
   exhibitLabel: string;
   onChanged: () => void;
 }) {
+  const [showDetail, setShowDetail] = useState(false);
+
   return (
-    <div className="border border-line rounded-sm p-4 bg-ink-2">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <span className="font-mono text-xs text-brass">{exhibitLabel}</span>
-        <span
-          className={`font-mono text-xs px-2 py-0.5 rounded-sm border shrink-0 ${verdictColor(evidence.score)}`}
-        >
-          {evidence.score === null ? 'puanlaniyor' : `${evidence.score}/100`}
-        </span>
-      </div>
-      <p className="text-parchment text-sm leading-relaxed">{evidence.content}</p>
-      {evidence.sourceUrl && (
-        <a
-          href={evidence.sourceUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono text-xs text-brass hover:text-brass-light mt-2 inline-block"
-        >
-          kaynak &rarr;
-        </a>
-      )}
-      {evidence.aiReasoning && (
-        <p className="text-xs text-parchment-dim mt-2 leading-relaxed border-t border-line pt-2">
-          {evidence.aiReasoning}
-        </p>
-      )}
-      {evidence.qualityBreakdown && (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-3 border-t border-line pt-2 font-mono text-xs text-parchment-dim">
-          <span>kaynak {evidence.qualityBreakdown.sourceReliability}/35</span>
-          <span>dogrulama {evidence.qualityBreakdown.verifiability}/25</span>
-          <span>alaka {evidence.qualityBreakdown.relevance}/20</span>
-          <span>somutluk {evidence.qualityBreakdown.specificity}/15</span>
-          <span>baglam {evidence.qualityBreakdown.timeliness}/5</span>
+    <article className="border-b border-line px-4 py-4">
+      <div className="flex gap-3">
+        <Avatar name={evidence.author.displayName ?? evidence.author.username} size={36} />
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Link
+              to={`/users/${evidence.author.username}`}
+              className="truncate text-sm font-semibold text-parchment hover:underline"
+            >
+              {evidence.author.displayName ?? evidence.author.username}
+            </Link>
+            <span className="font-mono text-[11px] text-parchment-dim">
+              @{evidence.author.username}
+            </span>
+            <span className="font-mono text-[11px] text-brass-dim">{exhibitLabel}</span>
+            <span
+              className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 font-mono text-[11px] ${scoreTone(evidence.score)}`}
+            >
+              {evidence.score === null ? 'puanlaniyor' : `${evidence.score}/100`}
+            </span>
+          </div>
+
+          <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-parchment">
+            {evidence.content}
+          </p>
+
+          {evidence.sourceUrl && (
+            <a
+              href={evidence.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex min-h-[44px] max-w-full items-center truncate rounded-lg border border-line px-3 font-mono text-xs text-brass hover:border-brass"
+            >
+              {evidence.sourceUrl}
+            </a>
+          )}
+
+          {(evidence.qualityBreakdown || evidence.aiReasoning) && (
+            <button
+              type="button"
+              onClick={() => setShowDetail((value) => !value)}
+              aria-expanded={showDetail}
+              className="mt-2 flex min-h-[32px] items-center gap-1.5 font-mono text-[11px] text-parchment-dim hover:text-brass"
+            >
+              {showDetail ? 'degerlendirmeyi gizle' : 'yapay zeka degerlendirmesi'}
+              <Icon name={showDetail ? 'yukari' : 'asagi'} className="h-3 w-3" />
+            </button>
+          )}
+
+          {showDetail && (
+            <div className="mt-2 space-y-2 rounded-xl border border-line bg-ink-2 p-3">
+              {evidence.qualityBreakdown && (
+                <div className="space-y-1.5">
+                  <QualityRow label="kaynak" value={evidence.qualityBreakdown.sourceReliability} max={35} />
+                  <QualityRow label="dogrulama" value={evidence.qualityBreakdown.verifiability} max={25} />
+                  <QualityRow label="alaka" value={evidence.qualityBreakdown.relevance} max={20} />
+                  <QualityRow label="somutluk" value={evidence.qualityBreakdown.specificity} max={15} />
+                  <QualityRow label="baglam" value={evidence.qualityBreakdown.timeliness} max={5} />
+                </div>
+              )}
+              {evidence.aiReasoning && (
+                <p className="border-t border-line pt-2 text-xs leading-relaxed text-parchment-dim">
+                  {evidence.aiReasoning}
+                </p>
+              )}
+            </div>
+          )}
+
+          <VoteBar evidence={evidence} onChanged={onChanged} />
         </div>
-      )}
-      <p className="font-mono text-xs text-parchment-dim mt-2">
-        {evidence.author.displayName ?? evidence.author.username}
-      </p>
-      <VoteButtons evidence={evidence} />
-      <ReportControl evidence={evidence} onReported={onChanged} />
-    </div>
+      </div>
+    </article>
   );
 }
 
-function SideColumn({
-  side,
-  isLeading,
-  onAdded,
-}: {
-  side: Side;
-  isLeading: boolean;
-  onAdded: () => void;
-}) {
+function SideColumn({ side, isLeading, onAdded }: { side: Side; isLeading: boolean; onAdded: () => void }) {
   const [content, setContent] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -302,9 +366,10 @@ function SideColumn({
   const { accessToken, user } = useAuth();
 
   const sorted = [...side.evidences].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  const accent = side.position === 'A' ? 'bg-side-a' : 'bg-side-b';
 
-  async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleAdd(event: React.FormEvent) {
+    event.preventDefault();
     setError('');
     setSubmitting(true);
     try {
@@ -324,80 +389,86 @@ function SideColumn({
   }
 
   return (
-    <div className="flex-1 min-w-0">
-      <div className="flex items-baseline gap-2 mb-2 flex-wrap">
-        <span className="font-mono text-xs text-parchment-dim">TARAF {side.position}</span>
-        <h3 className="font-display text-lg text-parchment">{side.label}</h3>
-        {isLeading && (
-          <span className="font-mono text-xs px-2 py-0.5 rounded-sm border border-brass text-brass">
-            onde
+    <section className="min-w-0 flex-1">
+      <header className="sticky top-0 z-[5] border-b border-line bg-ink/90 px-4 py-3 backdrop-blur">
+        <div className="flex flex-wrap items-baseline gap-2">
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${accent}`} />
+          <h2 className="font-display text-lg text-parchment">{side.label}</h2>
+          {isLeading && (
+            <span className="rounded-full border border-brass px-2 py-0.5 font-mono text-[11px] text-brass">
+              onde
+            </span>
+          )}
+          <span
+            className={`ml-auto font-display text-2xl ${strengthTone(side.strengthScore)}`}
+            title="Kanit kalitesine dayali taraf gucu. Cok sayida zayif kanit bu puani yukseltmez."
+          >
+            {side.strengthScore ?? '-'}
           </span>
-        )}
-      </div>
+        </div>
+        <p className="mt-0.5 font-mono text-[11px] text-parchment-dim">
+          ort {side.averageScore ?? '-'} &middot; {side.scoredCount}/{side.evidenceCount} kanit
+          puanlandi
+        </p>
+      </header>
 
-      <div className="flex gap-3 mb-4 font-mono text-xs text-parchment-dim">
-        <span className="text-brass" title="Kanit kalitesine dayali taraf gucu. Cok sayida zayif kanit bu puani yukseltmez.">
-          guc {side.strengthScore ?? '-'}
-        </span>
-        <span>ort {side.averageScore ?? '-'}</span>
-        <span>
-          {side.scoredCount}/{side.evidenceCount} kanit puanlandi
-        </span>
-      </div>
-
-      <div className="space-y-3 mb-5">
-        {sorted.length === 0 && (
-          <p className="text-parchment-dim text-sm">henuz kanit sunulmadi.</p>
-        )}
-        {sorted.map((ev, i) => (
-          <EvidenceCard
-            key={ev.id}
-            evidence={ev}
-            exhibitLabel={`${side.position}-${i + 1}`}
-            onChanged={onAdded}
-          />
-        ))}
-      </div>
+      {sorted.length === 0 && (
+        <p className="px-4 py-8 text-center text-sm text-parchment-dim">Henuz kanit sunulmadi.</p>
+      )}
+      {sorted.map((evidence, index) => (
+        <EvidenceCard
+          key={evidence.id}
+          evidence={evidence}
+          exhibitLabel={`${side.position}-${index + 1}`}
+          onChanged={onAdded}
+        />
+      ))}
 
       {user ? (
-        <form onSubmit={handleAdd} className="space-y-2 border-t border-line pt-4">
+        <form onSubmit={handleAdd} className="space-y-2 px-4 py-4">
+          <label htmlFor={`evidence-${side.id}`} className="sr-only">
+            {side.label} tarafina kanit
+          </label>
           <textarea
-            placeholder="Kanitini sun..."
-            aria-label="Kanit metni"
+            id={`evidence-${side.id}`}
+            placeholder={`"${side.label}" icin kanitini sun`}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(event) => setContent(event.target.value)}
             required
             rows={3}
-            className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
+            className="w-full resize-none rounded-xl border border-line bg-ink-2 px-3 py-2 text-sm text-parchment outline-none transition-colors placeholder:text-parchment-dim focus:border-brass"
           />
+          <label htmlFor={`source-${side.id}`} className="sr-only">
+            Kaynak linki
+          </label>
           <input
+            id={`source-${side.id}`}
             type="url"
-            placeholder="Kaynak linki (opsiyonel)"
-            aria-label="Kaynak linki (opsiyonel)"
+            placeholder="Kaynak linki (puanin en buyuk bileseni)"
             value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-            className="w-full px-3 py-2 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
+            onChange={(event) => setSourceUrl(event.target.value)}
+            className="min-h-[44px] w-full rounded-xl border border-line bg-ink-2 px-3 text-sm text-parchment outline-none transition-colors placeholder:text-parchment-dim focus:border-brass"
           />
-          {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
+          {error && <p className="font-mono text-xs text-verdict-weak">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2 rounded-sm bg-brass hover:bg-brass-light text-ink text-sm font-medium transition-colors disabled:opacity-50"
+            className="min-h-[44px] w-full rounded-full bg-brass font-semibold text-ink transition-colors hover:bg-brass-light disabled:opacity-50"
           >
-            {submitting ? 'sunuluyor...' : 'kanit sun'}
+            {submitting ? 'sunuluyor...' : 'Kanit sun'}
           </button>
         </form>
       ) : (
-        <div className="border-t border-line pt-4">
+        <div className="px-4 py-4">
           <Link
             to="/login"
-            className="block w-full text-center py-2 rounded-sm border border-brass text-brass hover:bg-ink-2 text-sm transition-colors"
+            className="flex min-h-[44px] w-full items-center justify-center rounded-full border border-brass text-sm text-brass transition-colors hover:bg-ink-2"
           >
-            kanit sunmak icin giris yap
+            Kanit sunmak icin giris yap
           </Link>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -406,16 +477,18 @@ export default function TopicDetailPage() {
   const [topic, setTopic] = useState<Topic | null>(null);
   useDocumentTitle(topic?.title ?? null);
   const [loading, setLoading] = useState(true);
+  const [mobileSide, setMobileSide] = useState<'A' | 'B'>('A');
   const { accessToken } = useAuth();
 
-  function load() {
+  const load = useCallback(() => {
     if (!id) return;
     apiRequest<Topic>(`/topics/${id}`, { token: accessToken })
       .then(setTopic)
+      .catch(() => setTopic(null))
       .finally(() => setLoading(false));
-  }
+  }, [id, accessToken]);
 
-  useEffect(load, [id, accessToken]);
+  useEffect(load, [load]);
 
   useEffect(() => {
     if (!id || !API_URL) return;
@@ -427,59 +500,102 @@ export default function TopicDetailPage() {
       socket.emit('topic:leave', { topicId: id });
       socket.disconnect();
     };
-  }, [id, accessToken]);
+  }, [id, load]);
 
   if (loading) {
-    return <div className="min-h-screen bg-ink text-parchment-dim text-sm p-6">yukleniyor...</div>;
+    return (
+      <AppShell right={<RightRail />}>
+        <p className="px-4 py-10 text-center text-sm text-parchment-dim">yukleniyor...</p>
+      </AppShell>
+    );
   }
 
   if (!topic) {
-    return <div className="min-h-screen bg-ink text-parchment-dim text-sm p-6">dava bulunamadi.</div>;
+    return (
+      <AppShell right={<RightRail />}>
+        <p className="px-4 py-10 text-center text-sm text-parchment-dim">Dava bulunamadi.</p>
+      </AppShell>
+    );
   }
 
+  const sideA = topic.sides.find((side) => side.position === 'A');
+  const sideB = topic.sides.find((side) => side.position === 'B');
+
   return (
-    <div className="min-h-screen bg-ink">
-      <header className="border-b border-line px-6 py-5 max-w-5xl mx-auto">
-        <Link to="/" className="font-mono text-xs text-parchment-dim hover:text-parchment">
-          &larr; gundeme don
-        </Link>
-        <p className="font-mono text-xs text-brass mt-3">{topic.category.toUpperCase()}</p>
-        <h1 className="font-display text-3xl text-parchment mt-1">{topic.title}</h1>
-        <p className="text-parchment-dim text-sm mt-2 leading-relaxed max-w-2xl">
-          {topic.description}
-        </p>
-      </header>
+    <AppShell right={<RightRail activeCategory={topic.category} />} wide>
+      <PageHeader title={topic.title} subtitle={topic.category.toUpperCase()} back="/" />
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex flex-col md:flex-row gap-8 md:divide-x md:divide-line">
-          <div className="md:pr-8 flex-1">
-            {topic.sides
-              .filter((s) => s.position === 'A')
-              .map((side) => (
-                <SideColumn
-                  key={side.id}
-                  side={side}
-                  isLeading={topic.leadingSideId === side.id}
-                  onAdded={load}
-                />
-              ))}
-          </div>
-          <div className="md:pl-8 flex-1">
-            {topic.sides
-              .filter((s) => s.position === 'B')
-              .map((side) => (
-                <SideColumn
-                  key={side.id}
-                  side={side}
-                  isLeading={topic.leadingSideId === side.id}
-                  onAdded={load}
-                />
-              ))}
-          </div>
+      <div className="border-b border-line px-4 py-4 sm:px-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[11px] uppercase tracking-wide text-parchment-dim">
+            {topic.category}
+          </span>
+          {topic.status === 'PENDING' && (
+            <span className="rounded-full border border-verdict-mid px-2 py-0.5 font-mono text-[11px] text-verdict-mid">
+              onay bekliyor
+            </span>
+          )}
+          {topic.isTie && (
+            <span className="rounded-full border border-brass px-2 py-0.5 font-mono text-[11px] text-brass">
+              berabere
+            </span>
+          )}
         </div>
+        <h1 className="font-display text-2xl leading-snug text-parchment md:hidden">{topic.title}</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-parchment-dim">{topic.description}</p>
+        <div className="mt-4">
+          <StrengthBar sides={topic.sides} leadingSideId={topic.leadingSideId} />
+        </div>
+      </div>
 
+      {/* Telefon: taraflar arasinda sekme. Iki sutunu yan yana sikistirmak
+          yerine her tarafa tam genislik verilir. */}
+      <div className="flex border-b border-line md:hidden">
+        {(['A', 'B'] as const).map((position) => {
+          const side = position === 'A' ? sideA : sideB;
+          if (!side) return null;
+          const selected = mobileSide === position;
+          return (
+            <button
+              key={position}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setMobileSide(position)}
+              className={`relative flex min-h-[48px] flex-1 items-center justify-center gap-2 px-3 text-sm ${
+                selected ? 'font-semibold text-parchment' : 'text-parchment-dim'
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${position === 'A' ? 'bg-side-a' : 'bg-side-b'}`}
+              />
+              <span className="truncate">{side.label}</span>
+              <span className={`font-mono text-xs ${strengthTone(side.strengthScore)}`}>
+                {side.strengthScore ?? '-'}
+              </span>
+              {selected && (
+                <span className="absolute bottom-0 left-1/2 h-1 w-16 -translate-x-1/2 rounded-full bg-brass" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="md:flex md:divide-x md:divide-line">
+        {sideA && (
+          <div className={`${mobileSide === 'A' ? 'block' : 'hidden'} md:block md:flex-1 md:min-w-0`}>
+            <SideColumn side={sideA} isLeading={topic.leadingSideId === sideA.id} onAdded={load} />
+          </div>
+        )}
+        {sideB && (
+          <div className={`${mobileSide === 'B' ? 'block' : 'hidden'} md:block md:flex-1 md:min-w-0`}>
+            <SideColumn side={sideB} isLeading={topic.leadingSideId === sideB.id} onAdded={load} />
+          </div>
+        )}
+      </div>
+
+      <div className="border-t border-line px-4 pb-6 sm:px-5">
         <CommentSection topicId={topic.id} />
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import Footer from './Footer';
+import AppShell from './AppShell';
+import RightRail from './RightRail';
+import { PageHeader, MobilePageTitle } from './Tabs';
 
 interface Props {
   title: string;
@@ -19,32 +20,22 @@ export default function InfoPageLayout({ title, tag, intro, children }: Props) {
   }, [title]);
 
   return (
-    <div className="min-h-screen bg-ink text-parchment flex flex-col">
-      <header className="border-b border-line px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="font-display text-xl text-brass">
-          VERITAS
-        </Link>
-        <nav className="font-mono text-xs text-parchment-dim">{tag}</nav>
-      </header>
-
-      <main className="max-w-3xl mx-auto w-full px-6 py-10 flex-1">
-        <h1 className="font-display text-3xl text-brass">{title}</h1>
-        <p className="text-sm text-parchment-dim mt-3 leading-relaxed">{intro}</p>
-        <div className="mt-8 space-y-6">{children}</div>
-      </main>
-
-      <div className="max-w-3xl mx-auto w-full">
-        <Footer />
-      </div>
-    </div>
+    <AppShell right={<RightRail />}>
+      <PageHeader title={title} subtitle={tag} back="/" />
+      <MobilePageTitle title={title} subtitle={tag} />
+      <p className="border-b border-line px-4 py-4 text-[15px] leading-relaxed text-parchment-dim sm:px-5">
+        {intro}
+      </p>
+      <div className="divide-y divide-line">{children}</div>
+    </AppShell>
   );
 }
 
 export function InfoSection({ heading, children }: { heading: string; children: ReactNode }) {
   return (
-    <section className="border border-line rounded p-5">
-      <h2 className="font-display text-lg text-brass">{heading}</h2>
-      <div className="mt-3 space-y-2 text-sm text-parchment-dim leading-relaxed">{children}</div>
+    <section className="px-4 py-5 sm:px-5">
+      <h2 className="font-display text-lg text-parchment">{heading}</h2>
+      <div className="mt-2 space-y-2 text-sm leading-relaxed text-parchment-dim">{children}</div>
     </section>
   );
 }

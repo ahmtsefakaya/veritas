@@ -50,7 +50,7 @@ export default function ResetPasswordPage() {
 
         <div className="bg-ink-2 border border-line rounded-sm p-7">
           {!token ? (
-            <p className="font-mono text-xs text-rust leading-relaxed">
+            <p className="font-mono text-xs text-verdict-weak leading-relaxed">
               Baglantida sifirlama jetonu yok. E-postadaki baglantiyi oldugu gibi acin.
             </p>
           ) : done ? (
@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
                 icermeli.
               </p>
 
-              {error && <p className="text-rust text-xs font-mono">{error}</p>}
+              {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
 
               <button
                 type="submit"

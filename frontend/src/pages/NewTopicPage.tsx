@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import AppShell from '../components/AppShell';
+import RightRail from '../components/RightRail';
+import { PageHeader, MobilePageTitle } from '../components/Tabs';
+
+const CATEGORIES = ['Siyaset', 'Bilim', 'Tarih', 'Ekonomi', 'Teknoloji', 'Saglik', 'Spor', 'Diger'];
 
 export default function NewTopicPage() {
+  useDocumentTitle('Yeni dava');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(CATEGORIES[0]);
   const [sideALabel, setSideALabel] = useState('');
   const [sideBLabel, setSideBLabel] = useState('');
   const [error, setError] = useState('');
@@ -14,17 +21,17 @@ export default function NewTopicPage() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await apiRequest('/topics', {
+      const created = await apiRequest<{ id: string }>('/topics', {
         method: 'POST',
         token: accessToken,
         body: { title, description, category, sideALabel, sideBLabel },
       });
-      navigate('/');
+      navigate(`/topics/${created.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bir hata olustu.');
     } finally {
@@ -32,80 +39,112 @@ export default function NewTopicPage() {
     }
   }
 
-  const inputClass =
-    'w-full px-3 py-2.5 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors';
+  const field =
+    'w-full rounded-xl border border-line bg-ink-2 px-4 py-3 text-sm text-parchment outline-none transition-colors placeholder:text-parchment-dim focus:border-brass';
 
   return (
-    <div className="min-h-screen bg-ink px-6 py-8">
-      <div className="max-w-xl mx-auto">
-        <Link to="/" className="font-mono text-xs text-parchment-dim hover:text-parchment">
-          &larr; gundeme don
-        </Link>
-        <h1 className="font-display text-2xl text-parchment mt-3 mb-1">Yeni Dava Ac</h1>
-        <p className="text-parchment-dim text-sm mb-6 leading-relaxed">
-          Davan moderasyondan gectikten sonra gundeme dusecek.
-        </p>
+    <AppShell right={<RightRail />}>
+      <PageHeader title="Yeni dava" subtitle="iki taraf, bir soru" back="/" />
+      <MobilePageTitle title="Yeni dava" subtitle="iki taraf, bir soru" />
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+      <p className="border-b border-line px-4 py-4 text-sm leading-relaxed text-parchment-dim sm:px-5">
+        Davan moderasyondan gectikten sonra gundeme duser. Beklerken kendi davana kanit
+        eklemeye devam edebilirsin.
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4 px-4 py-5 sm:px-5">
+        <div>
+          <label htmlFor="topic-title" className="mb-1.5 block font-mono text-xs text-parchment-dim">
+            dava sorusu
+          </label>
           <input
+            id="topic-title"
             type="text"
-            placeholder="Dava basligi"
-            aria-label="Dava basligi"
+            placeholder="Ornek: Yapay zeka istihdami azaltir mi?"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(event) => setTitle(event.target.value)}
             required
-            className={inputClass}
+            className={`${field} font-display text-lg`}
           />
+        </div>
+
+        <div>
+          <label htmlFor="topic-desc" className="mb-1.5 block font-mono text-xs text-parchment-dim">
+            baglam
+          </label>
           <textarea
-            placeholder="Dava aciklamasi"
-            aria-label="Dava aciklamasi"
+            id="topic-desc"
+            placeholder="Tartisilan sey tam olarak ne? Hangi donem, hangi kapsam?"
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(event) => setDescription(event.target.value)}
             required
             rows={4}
-            className={inputClass}
+            className={`${field} resize-none`}
           />
-          <input
-            type="text"
-            placeholder="Kategori (orn: teknoloji, siyaset, felsefe)"
-            aria-label="Kategori"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            required
-            className={inputClass}
-          />
-          <div className="grid grid-cols-2 gap-3">
+        </div>
+
+        <fieldset>
+          <legend className="mb-1.5 font-mono text-xs text-parchment-dim">kategori</legend>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={category === item}
+                onClick={() => setCategory(item)}
+                className={`flex min-h-[40px] items-center rounded-full border px-4 text-sm transition-colors ${
+                  category === item
+                    ? 'border-brass text-brass'
+                    : 'border-line text-parchment-dim hover:text-parchment'
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="side-a" className="mb-1.5 flex items-center gap-2 font-mono text-xs text-parchment-dim">
+              <span className="h-2 w-2 rounded-full bg-side-a" /> A tarafi
+            </label>
             <input
+              id="side-a"
               type="text"
-              placeholder="A tarafi"
-              aria-label="A tarafinin adi"
+              placeholder="Evet, azaltir"
               value={sideALabel}
-              onChange={(e) => setSideALabel(e.target.value)}
+              onChange={(event) => setSideALabel(event.target.value)}
               required
-              className={inputClass}
-            />
-            <input
-              type="text"
-              placeholder="B tarafi"
-              aria-label="B tarafinin adi"
-              value={sideBLabel}
-              onChange={(e) => setSideBLabel(e.target.value)}
-              required
-              className={inputClass}
+              className={field}
             />
           </div>
+          <div>
+            <label htmlFor="side-b" className="mb-1.5 flex items-center gap-2 font-mono text-xs text-parchment-dim">
+              <span className="h-2 w-2 rounded-full bg-side-b" /> B tarafi
+            </label>
+            <input
+              id="side-b"
+              type="text"
+              placeholder="Hayir, azaltmaz"
+              value={sideBLabel}
+              onChange={(event) => setSideBLabel(event.target.value)}
+              required
+              className={field}
+            />
+          </div>
+        </div>
 
-          {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
+        {error && <p className="text-sm text-verdict-weak">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-sm bg-brass hover:bg-brass-light text-ink font-medium text-sm transition-colors disabled:opacity-50"
-          >
-            {loading ? 'gonderiliyor...' : 'davayi ac'}
-          </button>
-        </form>
-      </div>
-    </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="min-h-[48px] w-full rounded-full bg-brass font-semibold text-ink transition-colors hover:bg-brass-light disabled:opacity-50"
+        >
+          {loading ? 'gonderiliyor...' : 'Davayi ac'}
+        </button>
+      </form>
+    </AppShell>
   );
 }

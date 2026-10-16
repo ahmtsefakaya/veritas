@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
                 className="w-full px-3 py-2.5 rounded-sm bg-ink-3 border border-line text-parchment placeholder-parchment-dim text-sm outline-none focus:border-brass transition-colors"
               />
 
-              {error && <p className="text-rust text-xs font-mono">{error}</p>}
+              {error && <p className="text-verdict-weak text-xs font-mono">{error}</p>}
 
               <button
                 type="submit"

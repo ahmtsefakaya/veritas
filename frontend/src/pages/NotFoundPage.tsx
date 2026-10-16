@@ -1,31 +1,35 @@
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import AppShell from '../components/AppShell';
+import RightRail from '../components/RightRail';
+import Icon from '../components/Icon';
 
 export default function NotFoundPage() {
   useDocumentTitle('Sayfa bulunamadi');
   return (
-    <div className="min-h-screen bg-ink text-parchment flex items-center justify-center px-6">
-      <div className="text-center">
-        <p className="font-mono text-xs text-brass tracking-widest">HATA-404</p>
-        <h1 className="font-display text-4xl mt-3">Dosya bulunamadi</h1>
-        <p className="text-sm text-parchment-dim mt-3 leading-relaxed max-w-sm mx-auto">
-          Aradiginiz sayfa arsivde yok. Silinmis bir dava ya da yanlis bir adres olabilir.
+    <AppShell right={<RightRail />}>
+      <div className="flex flex-col items-center px-6 py-20 text-center">
+        <Icon name="terazi" className="h-12 w-12 text-brass-dim" />
+        <p className="mt-6 font-mono text-xs tracking-widest text-brass">HATA-404</p>
+        <h1 className="mt-2 font-display text-3xl text-parchment">Dosya bulunamadi</h1>
+        <p className="mt-3 max-w-sm text-sm leading-relaxed text-parchment-dim">
+          Aradigin sayfa arsivde yok. Silinmis bir dava ya da yanlis bir adres olabilir.
         </p>
-        <div className="mt-6 flex items-center justify-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
             to="/"
-            className="font-mono text-xs px-4 py-2 rounded-sm bg-brass text-ink"
+            className="flex min-h-[44px] items-center rounded-full bg-brass px-6 font-semibold text-ink"
           >
-            gundeme don
+            Gundeme don
           </Link>
           <Link
-            to="/leaderboard"
-            className="font-mono text-xs px-4 py-2 rounded-sm border border-line text-parchment-dim hover:text-brass hover:border-brass transition-colors"
+            to="/kesfet"
+            className="flex min-h-[44px] items-center rounded-full border border-line px-6 text-sm text-parchment-dim transition-colors hover:border-brass hover:text-brass"
           >
-            siralama
+            Kesfet
           </Link>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

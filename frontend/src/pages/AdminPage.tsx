@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import AppShell from '../components/AppShell';
+import RightRail from '../components/RightRail';
+import Tabs, { PageHeader, MobilePageTitle } from '../components/Tabs';
 
 interface Topic {
   id: string;
@@ -69,6 +73,7 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 export default function AdminPage() {
+  useDocumentTitle('Moderasyon masasi');
   const [topics, setTopics] = useState<Topic[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -165,61 +170,39 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-ink">
-      <header className="border-b border-line px-6 py-5 max-w-3xl mx-auto">
-        <Link to="/" className="font-mono text-xs text-parchment-dim hover:text-parchment">
-          &larr; gundeme don
-        </Link>
-        <h1 className="font-display text-2xl text-parchment mt-2">Moderasyon Masasi</h1>
-        <div className="flex gap-4 mt-4">
-          <button
-            type="button"
-            onClick={() => setTab('topics')}
-            className={`font-mono text-xs pb-1 border-b-2 transition-colors ${
-              tab === 'topics'
-                ? 'border-brass text-brass'
-                : 'border-transparent text-parchment-dim hover:text-parchment'
-            }`}
-          >
-            dava kuyrugu ({topics.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('reports')}
-            className={`font-mono text-xs pb-1 border-b-2 transition-colors ${
-              tab === 'reports'
-                ? 'border-brass text-brass'
-                : 'border-transparent text-parchment-dim hover:text-parchment'
-            }`}
-          >
-            kaynak bildirimleri ({reports.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('users')}
-            className={`font-mono text-xs pb-1 border-b-2 transition-colors ${
-              tab === 'users'
-                ? 'border-brass text-brass'
-                : 'border-transparent text-parchment-dim hover:text-parchment'
-            }`}
-          >
-            kullanicilar ({users.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('stats')}
-            className={`font-mono text-xs pb-1 border-b-2 transition-colors ${
-              tab === 'stats'
-                ? 'border-brass text-brass'
-                : 'border-transparent text-parchment-dim hover:text-parchment'
-            }`}
-          >
-            istatistik
-          </button>
-        </div>
-      </header>
+    <AppShell right={<RightRail />} wide>
+      <PageHeader title="Moderasyon masasi" subtitle="dava, bildirim ve hesap yonetimi" back="/">
+        <Tabs
+          items={[
+            { key: 'topics', label: 'Dava kuyrugu', count: topics.length },
+            { key: 'reports', label: 'Bildirimler', count: reports.length },
+            { key: 'users', label: 'Kullanicilar', count: users.length },
+            { key: 'stats', label: 'Istatistik' },
+          ]}
+          active={tab}
+          ariaLabel="Moderasyon sekmeleri"
+          onChange={(key) => setTab(key as typeof tab)}
+        />
+      </PageHeader>
 
-      <main className="max-w-3xl mx-auto px-6 py-8">
+      <div className="md:hidden">
+        <MobilePageTitle title="Moderasyon masasi" />
+        <div className="border-b border-line">
+          <Tabs
+            items={[
+              { key: 'topics', label: 'Davalar', count: topics.length },
+              { key: 'reports', label: 'Bildirim', count: reports.length },
+              { key: 'users', label: 'Hesap', count: users.length },
+              { key: 'stats', label: 'Istatistik' },
+            ]}
+            active={tab}
+            ariaLabel="Moderasyon sekmeleri"
+            onChange={(key) => setTab(key as typeof tab)}
+          />
+        </div>
+      </div>
+
+      <main className="px-4 py-5 sm:px-5">
         {loading && <p className="text-parchment-dim text-sm">yukleniyor...</p>}
         {actionError && (
           <p className="text-verdict-weak text-sm mb-4 font-mono text-xs">{actionError}</p>
@@ -522,6 +505,6 @@ export default function AdminPage() {
           </>
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }

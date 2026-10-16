@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import Icon from './Icon';
 
-interface Notification {
+export interface Notification {
   id: string;
   type: string;
   title: string;
@@ -13,35 +14,107 @@ interface Notification {
   createdAt: string;
 }
 
-interface NotificationList {
+export interface NotificationList {
   items: Notification[];
   unreadCount: number;
 }
 
 const POLL_INTERVAL_MS = 60_000;
 
-export default function NotificationBell() {
+/*
+  Paylasilan okunmamis sayaci.
+
+  Rozet artik birden fazla yerde ciziliyor (sol sutun, telefon basligi, alt
+  sekme cubugu). Her kopya kendi `setInterval`'ini kursaydi ayni veriyi uc kez
+  ceker ve sayilar birbirini tutmazdi; bu yuzden tek bir modul duzeyi store var
+  ve bilesenler ona abone oluyor.
+*/
+let unreadCount = 0;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let activeToken: string | null = null;
+const listeners = new Set<() => void>();
+
+function emit() {
+  listeners.forEach((listener) => listener());
+}
+
+export function setUnreadCount(value: number) {
+  if (unreadCount === value) return;
+  unreadCount = value;
+  emit();
+}
+
+async function refreshCount(token: string) {
+  try {
+    const data = await apiRequest<NotificationList>('/notifications?limit=1', { token });
+    setUnreadCount(data.unreadCount);
+  } catch {
+    /* sessiz: rozet, sayfayi bozacak kadar kritik degil */
+  }
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0 && pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      activeToken = null;
+    }
+  };
+}
+
+export function useUnreadCount() {
   const { accessToken } = useAuth();
+  const count = useSyncExternalStore(
+    subscribe,
+    () => unreadCount,
+    () => 0,
+  );
+
+  useEffect(() => {
+    if (!accessToken) {
+      activeToken = null;
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      setUnreadCount(0);
+      return;
+    }
+    if (activeToken === accessToken && pollTimer) return;
+    activeToken = accessToken;
+    void refreshCount(accessToken);
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(() => {
+      if (activeToken) void refreshCount(activeToken);
+    }, POLL_INTERVAL_MS);
+  }, [accessToken]);
+
+  return count;
+}
+
+/**
+ * `variant="dot"`  — yalnizca okunmamis rozeti; bir ikonun ustune bindirilir.
+ * `variant="menu"` — ikon + acilir liste (masaustu kisayolu).
+ */
+export default function NotificationBell({ variant = 'menu' }: { variant?: 'dot' | 'menu' }) {
+  const { accessToken } = useAuth();
+  const count = useUnreadCount();
   const [data, setData] = useState<NotificationList>({ items: [], unreadCount: 0 });
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const load = () => {
-    if (!accessToken) return;
-    apiRequest<NotificationList>('/notifications?limit=20', { token: accessToken })
-      .then(setData)
-      .catch(() => undefined);
-  };
-
   useEffect(() => {
-    if (!accessToken) {
-      setData({ items: [], unreadCount: 0 });
-      return;
-    }
-    load();
-    const timer = setInterval(load, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, [accessToken]);
+    if (!open || !accessToken) return;
+    apiRequest<NotificationList>('/notifications?limit=20', { token: accessToken })
+      .then((list) => {
+        setData(list);
+        setUnreadCount(list.unreadCount);
+      })
+      .catch(() => undefined);
+  }, [open, accessToken]);
 
   useEffect(() => {
     if (!open) return;
@@ -52,6 +125,20 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [open]);
 
+  if (!accessToken) return null;
+
+  if (variant === 'dot') {
+    if (count === 0) return null;
+    return (
+      <span
+        aria-label={`${count} okunmamis bildirim`}
+        className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-brass px-1 text-center font-mono text-[10px] font-semibold leading-[18px] text-ink"
+      >
+        {count > 9 ? '9+' : count}
+      </span>
+    );
+  }
+
   const markAllRead = async () => {
     if (!accessToken || data.unreadCount === 0) return;
     await apiRequest('/notifications/read-all', { method: 'PATCH', token: accessToken });
@@ -59,6 +146,7 @@ export default function NotificationBell() {
       items: previous.items.map((item) => ({ ...item, isRead: true })),
       unreadCount: 0,
     }));
+    setUnreadCount(0);
   };
 
   const markRead = async (notification: Notification) => {
@@ -73,30 +161,30 @@ export default function NotificationBell() {
       ),
       unreadCount: Math.max(0, previous.unreadCount - 1),
     }));
+    setUnreadCount(Math.max(0, count - 1));
   };
-
-  if (!accessToken) return null;
 
   return (
     <div className="relative" ref={containerRef}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="font-mono text-xs text-parchment-dim hover:text-parchment transition-colors relative px-2 py-1"
-        aria-label="bildirimler"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full text-parchment-dim transition-colors hover:bg-ink-2 hover:text-parchment"
+        aria-label="Bildirimler"
+        aria-expanded={open}
       >
-        bildirim
-        {data.unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-brass text-ink rounded-full px-1.5 text-[10px] font-mono">
-            {data.unreadCount > 9 ? '9+' : data.unreadCount}
+        <Icon name="bildirim" className="h-6 w-6" />
+        {count > 0 && (
+          <span className="absolute right-1 top-1 min-w-[18px] rounded-full bg-brass px-1 font-mono text-[10px] font-semibold leading-[18px] text-ink">
+            {count > 9 ? '9+' : count}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-ink-2 border border-line rounded shadow-lg z-50">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-line">
-            <span className="font-mono text-xs text-parchment-dim">bildirimler</span>
+        <div className="absolute right-0 z-50 mt-2 max-h-96 w-80 overflow-y-auto rounded-2xl border border-line bg-ink-2 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-line px-4 py-2">
+            <span className="text-sm font-semibold">Bildirimler</span>
             {data.unreadCount > 0 && (
               <button
                 type="button"
@@ -109,7 +197,7 @@ export default function NotificationBell() {
           </div>
 
           {data.items.length === 0 && (
-            <p className="px-4 py-6 font-mono text-xs text-parchment-dim text-center">
+            <p className="px-4 py-6 text-center font-mono text-xs text-parchment-dim">
               henuz bildirim yok
             </p>
           )}
@@ -118,20 +206,20 @@ export default function NotificationBell() {
             {data.items.map((notification) => {
               const body = (
                 <div
-                  className={`px-4 py-3 hover:bg-ink transition-colors ${
+                  className={`px-4 py-3 transition-colors hover:bg-ink-3 ${
                     notification.isRead ? 'opacity-60' : ''
                   }`}
                 >
-                  <p className="text-sm text-parchment flex items-start gap-2">
+                  <p className="flex items-start gap-2 text-sm text-parchment">
                     {!notification.isRead && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-brass mt-1.5 shrink-0" />
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brass" />
                     )}
                     <span>{notification.title}</span>
                   </p>
-                  <p className="text-xs text-parchment-dim mt-1 leading-relaxed">
+                  <p className="mt-1 text-xs leading-relaxed text-parchment-dim">
                     {notification.body}
                   </p>
-                  <p className="font-mono text-[10px] text-parchment-dim mt-1">
+                  <p className="mt-1 font-mono text-[10px] text-parchment-dim">
                     {new Date(notification.createdAt).toLocaleString('tr-TR')}
                   </p>
                 </div>

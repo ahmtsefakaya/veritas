@@ -1,24 +1,70 @@
 @import "tailwindcss";
 
-@theme {
-  --color-ink: #14181d;
-  --color-ink-2: #1b2129;
-  --color-ink-3: #242c36;
-  --color-line: #313b47;
-  --color-parchment: #e9e4d6;
-  --color-parchment-dim: #a8a294;
-  --color-brass: #b8923f;
-  --color-brass-light: #d4af6a;
-  --color-verdict-strong: #4c7a5e;
-  --color-verdict-mid: #a8823a;
-  --color-verdict-weak: #9c4a3c;
+/*
+  Veritas tema belirtecleri.
 
-  --font-display: "Fraunces", serif;
-  --font-body: "IBM Plex Sans", sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  Duzen kalibi uc sutunlu sosyal akislardan (X, Bluesky, Mastodon, Reddit)
+  tanidik; renk, tipografi ve bilesen dili Veritas'in kendisine ait:
+  gece siyahi uzerinde pirinc (brass) vurgu, serif baslik. Hicbir ucuncu
+  taraf markasinin rengi, logosu veya ikon seti kullanilmaz.
+*/
+
+@theme {
+  /* Zemin katmanlari: en koyudan yuzeye */
+  --color-ink: #07090c;
+  --color-ink-2: #0f1319;
+  --color-ink-3: #161b23;
+  --color-ink-4: #1d242e;
+  --color-line: #222a35;
+  --color-line-soft: #171d26;
+
+  /* Metin */
+  --color-parchment: #e9e6df;
+  --color-parchment-dim: #8b929e;
+
+  /* Vurgu */
+  --color-brass: #d2a74e;
+  --color-brass-light: #e8c67f;
+  --color-brass-dim: #6d5526;
+
+  /* Taraf renkleri: A ve B her yerde ayni renkte okunur */
+  --color-side-a: #5a8fd6;
+  --color-side-b: #cf7a52;
+
+  /* Hukum guc skalasi */
+  --color-verdict-strong: #4f9a6f;
+  --color-verdict-mid: #c2a04a;
+  --color-verdict-weak: #b35444;
+
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 body {
   background-color: var(--color-ink);
+  color: var(--color-parchment);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Yatay kaydirma seritlerinde cubugu gizle */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

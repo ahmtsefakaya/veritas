@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import AppShell from '../components/AppShell';
+import RightRail from '../components/RightRail';
+import { PageHeader, MobilePageTitle } from '../components/Tabs';
 
 interface Me {
   id: string;
@@ -42,6 +46,7 @@ const QUOTA_LABELS: Record<keyof Quota, string> = {
 };
 
 export default function SettingsPage() {
+  useDocumentTitle('Hesap ayarlari');
   const { accessToken, updateUser } = useAuth();
   const [me, setMe] = useState<Me | null>(null);
   const [countries, setCountries] = useState<string[]>([]);
@@ -128,29 +133,26 @@ export default function SettingsPage() {
 
   if (!accessToken) {
     return (
-      <div className="min-h-screen bg-ink text-parchment px-6 py-10">
-        <p className="font-mono text-xs text-parchment-dim">
-          Ayarlari gormek icin{' '}
-          <Link to="/login" className="text-brass underline">
-            giris yapin
+      <AppShell right={<RightRail />}>
+        <div className="px-4 py-10 text-center sm:px-5">
+          <p className="text-sm text-parchment-dim">Ayarlari gormek icin giris yap.</p>
+          <Link
+            to="/login"
+            className="mt-3 inline-flex min-h-[44px] items-center rounded-full bg-brass px-6 font-semibold text-ink"
+          >
+            Giris yap
           </Link>
-          .
-        </p>
-      </div>
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-ink text-parchment">
-      <header className="border-b border-line px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="font-display text-xl text-brass">
-          VERITAS
-        </Link>
-        <nav className="font-mono text-xs text-parchment-dim">hesap ayarlari</nav>
-      </header>
+    <AppShell right={<RightRail />}>
+      <PageHeader title="Ayarlar" subtitle="hesap ve profil" back="/" />
+      <MobilePageTitle title="Ayarlar" subtitle="hesap ve profil" />
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <h1 className="font-display text-3xl text-brass">Hesap Ayarlari</h1>
+      <main className="px-4 py-5 sm:px-5">
 
         {loading && <p className="mt-6 font-mono text-xs text-parchment-dim">yukleniyor...</p>}
 
@@ -165,7 +167,7 @@ export default function SettingsPage() {
                 {me.isEmailVerified ? (
                   <span className="text-brass">(dogrulandi)</span>
                 ) : (
-                  <span className="text-rust">(dogrulanmadi)</span>
+                  <span className="text-verdict-weak">(dogrulanmadi)</span>
                 )}
               </p>
               {!me.isEmailVerified && (
@@ -260,7 +262,7 @@ export default function SettingsPage() {
                 </select>
               </div>
 
-              {error && <p className="font-mono text-xs text-rust">{error}</p>}
+              {error && <p className="font-mono text-xs text-verdict-weak">{error}</p>}
               {saved && <p className="font-mono text-xs text-brass">{saved}</p>}
 
               <button
@@ -294,6 +296,6 @@ export default function SettingsPage() {
           </>
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }

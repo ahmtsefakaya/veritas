@@ -46,7 +46,7 @@ export default function VerifyEmailPage() {
           )}
 
           {state === 'missing' && (
-            <p className="font-mono text-xs text-rust">
+            <p className="font-mono text-xs text-verdict-weak">
               Baglantida dogrulama jetonu yok. E-postadaki baglantiyi oldugu gibi acin.
             </p>
           )}
@@ -62,7 +62,7 @@ export default function VerifyEmailPage() {
 
           {state === 'error' && (
             <>
-              <p className="font-display text-xl text-rust">Dogrulanamadi</p>
+              <p className="font-display text-xl text-verdict-weak">Dogrulanamadi</p>
               <p className="mt-2 font-mono text-xs text-parchment-dim leading-relaxed">
                 {message}
               </p>

@@ -14,6 +14,8 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
+import ExplorePage from './pages/ExplorePage';
+import NotificationsPage from './pages/NotificationsPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import RulesPage from './pages/RulesPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -29,6 +31,15 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/" element={<HomePage />} />
+          <Route path="/kesfet" element={<ExplorePage />} />
+          <Route
+            path="/bildirimler"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/new-topic"
             element={
